@@ -51,6 +51,10 @@ async function createCartridge(cartridgeObj) {
 
     console.log("Single Result ");
     console.log(cartridgeCombination);
+
+    cartridgeCombination.forEach(singleObj => {
+      console.log(singleObj);
+    });
   } else if (cartridgeObj.key === "MULTI") {
     console.log(cartridgeObj.key, " ", cartridgeObj.record.length);
     const multiGroupSeqResult = _.chain(cartridgeObj.record)
@@ -68,8 +72,8 @@ async function createCartridge(cartridgeObj) {
       multiGroupSeqResult[1].record
     );
 
-    cartridgeCombination.push(multiGasCombination);
-    console.log("Multi Group Sequence ", multiGasCombination);
+    cartridgeCombination.push({ multiGas: multiGasCombination[0] });
+    // console.log("Multi Group Sequence ", multiGasCombination);
 
     // Fetch the record from the Multi Gas table
   }
@@ -86,7 +90,11 @@ async function singleGasGenerator(singleCode) {
       singleGasResult.data.forEach(singleGasObj => {
         // Combine with the cartridge.CartridgeCode - singleGas.code
 
-        singleGasCombination.push(singleCode + "-" + singleGasObj.GasCode);
+        singleGasCombination.push({
+          singleCode: singleCode,
+          seperator: "-",
+          singleGasObj: singleGasObj
+        });
       });
     }
     return singleGasCombination;
@@ -96,7 +104,6 @@ async function singleGasGenerator(singleCode) {
 }
 
 async function multiGasGenerator(firstRecord, secondRecord) {
-  console.log("Multi Gas");
   const multiGasCombination = [];
 
   // Get the multi gas
@@ -120,8 +127,12 @@ async function multiGasGenerator(firstRecord, secondRecord) {
   if (multiGasResult) {
     firstRecord.forEach(firstRecordObj => {
       secondRecord.forEach(secondRecordObj => {
-        const multiGas =
-          firstRecordObj.CartridgeCode + "-" + secondRecordObj.CartridgeCode;
+        const multiGas = {
+          firstRecord: firstRecordObj,
+          seperator: "-",
+          secondRecord: secondRecordObj
+        };
+        //firstRecordObj.CartridgeCode + "-" + secondRecordObj.CartridgeCode;
 
         // Call the third column of multi gas
         const multiGasThirdColumnResult = multiGasThirdColumn(
@@ -142,14 +153,22 @@ function multiGasThirdColumn(multiGas, third, fourth, fifth) {
   third.forEach(thirdObj => {
     fourth.forEach(fourthObj => {
       fifth.forEach(fifthObj => {
-        const gasStr =
-          multiGas + thirdObj.GasCode + fourthObj.GasCode + fifthObj.GasCode;
+        multiGas.thirdRecord = thirdObj;
+        multiGas.fourthRecord = fourthObj;
+        multiGas.fifthRecord = fifthObj;
+        /*const gasStr = {
+          multiGas,
+          thirdRecord: thirdObj,
+          fourthRecord: fourthObj,
+          fifthRecord: fifthObj
+        };
+        // multiGas + thirdObj.GasCode + fourthObj.GasCode + fifthObj.GasCode;
         /*const gasStr = gasStrSplit[1]
           .split("")
           .sort()
           .join("");
           */
-        thirdColumnResult.push(gasStr);
+        thirdColumnResult.push(multiGas);
       });
     });
   });
