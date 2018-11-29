@@ -129,7 +129,6 @@ async function multiGasGenerator(firstRecord, secondRecord) {
           seperator: "-",
           secondRecord: secondRecordObj
         };
-        //firstRecordObj.CartridgeCode + "-" + secondRecordObj.CartridgeCode;
 
         // Call the third column of multi gas
         const multiGasThirdColumnResult = multiGasThirdColumn(
@@ -155,18 +154,6 @@ function multiGasThirdColumn(multiGas, third, fourth, fifth) {
         obj.fourthRecord = fourthObj;
         obj.fifthRecord = fifthObj;
 
-        /*const gasStr = {
-          multiGas,
-          thirdRecord: thirdObj,
-          fourthRecord: fourthObj,
-          fifthRecord: fifthObj
-        };
-        // multiGas + thirdObj.GasCode + fourthObj.GasCode + fifthObj.GasCode;
-        /*const gasStr = gasStrSplit[1]
-          .split("")
-          .sort()
-          .join("");
-          */
         const multiGasCopy = Object.assign({}, multiGas);
         const record = Object.assign(multiGasCopy, obj);
 
@@ -174,45 +161,37 @@ function multiGasThirdColumn(multiGas, third, fourth, fifth) {
       });
     });
   });
-  console.log("**************&&&& ", JSON.stringify(thirdColumnResult));
+
   return thirdColumnResult;
 }
 
 function storeCartridgeCombination(cartridgeCombination) {
   // For Standard Gas
-  cartridgeCombination[0].forEach(async obj => {
+  createStandardGas(cartridgeCombination[0]);
+
+  // For Single Gas Combination
+  createSingleGas(cartridgeCombination[1][0]);
+
+  // For Multi Gas Combination
+  createMultiGas(cartridgeCombination[2][0]);
+}
+
+function createStandardGas(standardGas) {
+  console.log("-------------Insode ");
+
+  standardGas.forEach(async obj => {
     const cartridgeCombinationObj = {
       cartridgeCombinationCode: obj.firstRecord.CartridgeCode,
       cartridgeCombinationName: obj.firstRecord.CartridgeName,
       groupName: obj.firstRecord.GroupName
     };
 
-    // Check the combination before store in the database
-    let isExist;
-    try {
-      isExist = await cartridgeModel.getCartridgeCombination(
-        cartridgeCombinationObj.cartridgeCombinationCode
-      );
-    } catch (error) {
-      console.log("Error for getCartridgeCombination in app ", error);
-    }
-
-    // Insert in the database
-    if (isExist.success && !(isExist.data.length > 0)) {
-      try {
-        await cartridgeModel.createCartridgeCobination(cartridgeCombinationObj);
-      } catch (error) {
-        await cartridgeModel.createCartridgeCobination(cartridgeCombinationObj);
-        console.log(
-          "Error for getCartridgeCombination for Standard in app ",
-          error
-        );
-      }
-    }
+    storeCartCombination(cartridgeCombinationObj);
   });
+}
 
-  // For Single Gas Combination
-  cartridgeCombination[1][0].forEach(async obj => {
+function createSingleGas(singleGas) {
+  singleGas.forEach(async obj => {
     const cartridgeCombinationObj = {
       cartridgeCombinationCode:
         obj.firstRecord.CartridgeCode +
@@ -223,36 +202,13 @@ function storeCartridgeCombination(cartridgeCombination) {
       groupName: obj.firstRecord.GroupName
     };
 
-    // Check the combination before store in the database
-    let isExist;
-    try {
-      isExist = await cartridgeModel.getCartridgeCombination(
-        cartridgeCombinationObj.cartridgeCombinationCode
-      );
-    } catch (error) {
-      console.log("Error for getCartridgeCombination in app ", error);
-    }
-
-    // Insert in the database
-    try {
-      if (isExist.success && !(isExist.data.length > 0)) {
-        await cartridgeModel.createCartridgeCobination(cartridgeCombinationObj);
-      }
-    } catch (error) {
-      console.log("Error for storeCartridgeCombination  in app ", error);
-    }
+    storeCartCombination(cartridgeCombinationObj);
   });
+}
 
-  // For Multi Gas Combination
-  console.log("Cartridge Length ", cartridgeCombination[2][0].length);
-
-  cartridgeCombination[2][0].forEach(objArray => {
-    console.log("Object Array  ", objArray.length);
+function createMultiGas(multiGas) {
+  multiGas.forEach(objArray => {
     objArray.forEach(async obj => {
-      // console.log("Obj length ")
-
-      //console.log("--------------------*********** ", JSON.stringify(obj));
-      //return 1;
       const cartridgeCombinationCode =
         obj.multiGas.firstRecord.CartridgeCode +
         obj.multiGas.seperator +
@@ -284,28 +240,34 @@ function storeCartridgeCombination(cartridgeCombination) {
         cartridgeCombinationName,
         groupName: obj.multiGas.firstRecord.GroupName
       };
-      // Check the combination before store in the database
-      let isExist;
-      try {
-        isExist = await cartridgeModel.getCartridgeCombination(
-          cartridgeCombinationObj.cartridgeCombinationCode
-        );
-      } catch (error) {
-        console.log("Error for getCartridgeCombination in app ", error);
-      }
 
-      // Insert in the database
-      try {
-        if (isExist.success && !(isExist.data.length > 0)) {
-          await cartridgeModel.createCartridgeCobination(
-            cartridgeCombinationObj
-          );
-        }
-      } catch (error) {
-        console.log("Error for storeCartridgeCombination  in app ", error);
-      }
+      storeCartCombination(cartridgeCombinationObj);
     });
   });
+}
+
+async function storeCartCombination(cartridgeCombinationObj) {
+  // Check the combination before store in the database
+  let isExist;
+  try {
+    isExist = await cartridgeModel.getCartridgeCombination(
+      cartridgeCombinationObj.cartridgeCombinationCode
+    );
+  } catch (error) {
+    console.log("Error for getCartridgeCombination in app ", error);
+  }
+
+  // Insert in the database
+  if (isExist.success && !(isExist.data.length > 0)) {
+    try {
+      await cartridgeModel.createCartridgeCombination(cartridgeCombinationObj);
+    } catch (error) {
+      console.log(
+        "Error for getCartridgeCombination for Standard in app ",
+        error
+      );
+    }
+  }
 }
 
 cartrigeData();

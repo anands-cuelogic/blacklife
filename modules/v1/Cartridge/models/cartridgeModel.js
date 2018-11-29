@@ -46,7 +46,7 @@ class CartridgeModel {
     });
   };
 
-  createCartridgeCobination = parameters => {
+  createCartridgeCombination = parameters => {
     const query =
       "INSERT INTO CartridgeCombination (CartridgeCombinationCode, CartridgeCombinationName, CartridgeGroupName) VALUES(?,?,?)";
     const queryParameter = [
