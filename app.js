@@ -179,12 +179,10 @@ function storeCartridgeCombination(cartridgeCombination) {
 }
 
 function createStandardGas(standardGas) {
-  console.log("-------------Insode ");
-
   standardGas.forEach(async obj => {
     const cartridgeCombinationObj = {
       cartridgeCombinationCode: obj.firstRecord.GasCode,
-      cartridgeCombinationName: obj.firstRecord.CartridgeName,
+      cartridgeCombinationName: obj.firstRecord.GasName,
       groupName: obj.firstRecord.GroupName
     };
 
@@ -198,7 +196,7 @@ function createSingleGas(singleGas) {
       cartridgeCombinationCode:
         obj.firstRecord.GasCode + obj.seperator + obj.secondRecord.GasCode,
       cartridgeCombinationName:
-        obj.firstRecord.CartridgeName + " , " + obj.secondRecord.GasName,
+        obj.firstRecord.GasName + " , " + obj.secondRecord.GasName,
       groupName: obj.firstRecord.GroupName
     };
 
@@ -227,9 +225,9 @@ function createMultiGas(multiGas) {
           : "," + obj.multiGas.fifthRecord.GasName;
 
       const cartridgeCombinationName =
-        obj.multiGas.firstRecord.CartridgeName +
+        obj.multiGas.firstRecord.GasName +
         "," +
-        obj.multiGas.secondRecord.CartridgeName +
+        obj.multiGas.secondRecord.GasName +
         "," +
         obj.multiGas.thirdRecord.GasName +
         fourthGasName +
