@@ -17,6 +17,7 @@
     "lodash": "4.17.11"
   },
   "dependencies": {
+    "csv-writer": "^1.2.0",
     "dotenv": "6.1.0",
     "mysql": "2.16.0"
   }

@@ -3,7 +3,7 @@ import mySqlConnection from "../../Services/mySQLConnection";
 class CartridgeModel {
   getCartridge = () => {
     const query =
-      "SELECT CartridgeCode, CartridgeName, SequenceNo, GroupName FROM Cartridge";
+      "SELECT CartridgeCode AS GasCode, CartridgeName AS GasName, SequenceNo, GroupName FROM Cartridge";
 
     return new Promise((resolve, reject) => {
       const temp = mySqlConnection.query(query, (err, result) => {
@@ -73,7 +73,7 @@ class CartridgeModel {
     });
   };
 
-  getCartridgeCombination = cartridgeCombinationCode => {
+  getCartridgeCombinationByCode = cartridgeCombinationCode => {
     const query =
       "SELECT CartridgeCombinationCode FROM CartridgeCombination WHERE CartridgeCombinationCode IN (?)";
 
@@ -84,7 +84,7 @@ class CartridgeModel {
         (err, result) => {
           if (err) {
             console.log(
-              "Error for getCartridgeCombination in cartridgeModel ",
+              "Error for getCartridgeCombinationByCode in cartridgeModel ",
               err
             );
             return reject({ success: false, message: err });
@@ -92,6 +92,24 @@ class CartridgeModel {
           return resolve({ success: true, data: result });
         }
       );
+    });
+  };
+
+  getCartridgeCombination = () => {
+    const query =
+      "SELECT CartridgeCombinationCode, CartridgeCombinationName FROM CartridgeCombination";
+
+    return new Promise((resolve, reject) => {
+      const temp = mySqlConnection.query(query, (err, result) => {
+        if (err) {
+          console.log(
+            "Error for getCartridgeCombination in cartidgeModel ",
+            err
+          );
+          return reject({ success: false, message: err });
+        }
+        return resolve({ success: true, data: result });
+      });
     });
   };
 }
