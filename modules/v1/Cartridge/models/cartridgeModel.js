@@ -45,6 +45,55 @@ class CartridgeModel {
       });
     });
   };
+
+  createCartridgeCobination = parameters => {
+    const query =
+      "INSERT INTO CartridgeCombination (CartridgeCombinationCode, CartridgeCombinationName, CartridgeGroupName) VALUES(?,?,?)";
+    const queryParameter = [
+      parameters.cartridgeCombinationCode,
+      parameters.cartridgeCombinationName,
+      parameters.groupName
+    ];
+
+    return new Promise((resolve, reject) => {
+      const temp = mySqlConnection.query(
+        query,
+        queryParameter,
+        (err, result) => {
+          if (err) {
+            console.log(
+              "Error for createCartridgeCobination in cartridgeModel ",
+              err
+            );
+            return reject({ success: false, message: err });
+          }
+          return resolve({ success: true, data: result });
+        }
+      );
+    });
+  };
+
+  getCartridgeCombination = cartridgeCombinationCode => {
+    const query =
+      "SELECT CartridgeCombinationCode FROM CartridgeCombination WHERE CartridgeCombinationCode IN (?)";
+
+    return new Promise((resolve, reject) => {
+      const temp = mySqlConnection.query(
+        query,
+        cartridgeCombinationCode,
+        (err, result) => {
+          if (err) {
+            console.log(
+              "Error for getCartridgeCombination in cartridgeModel ",
+              err
+            );
+            return reject({ success: false, message: err });
+          }
+          return resolve({ success: true, data: result });
+        }
+      );
+    });
+  };
 }
 
 export default new CartridgeModel();
