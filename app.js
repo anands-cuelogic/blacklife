@@ -443,7 +443,7 @@ async function createHardwareCSVFile() {
 }
 
 // To create cartridge combination
-// cartrigeData();
+cartrigeData();
 
 // To create Hardware SKU
-createHardwareSKU();
+// createHardwareSKU();
