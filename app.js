@@ -78,7 +78,7 @@ async function createCartridge(cartridgeObj) {
 
     const multiGasCombination = await multiGasGenerator(
       multiGroupSeqResult[0].record,
-      secondRecord
+      multiGroupSeqResult[1].record
     );
 
     cartridgeCombination.push(multiGasCombination);
@@ -136,7 +136,11 @@ async function multiGasGenerator(firstRecord, secondRecord) {
         const multiGas = {
           firstRecord: firstRecordObj,
           seperator: "-",
-          secondRecord: secondRecordObj
+          secondRecord: {
+            GasCode: secondRecordObj.CartridgeCode,
+            GasName: secondRecordObj.CartridgeName,
+            SequenceNo: secondRecordObj.SequenceNo
+          }
         };
 
         // Call the third column of multi gas
@@ -202,11 +206,11 @@ function multiGasThirdColumn(multiGas, third, fourth, fifth) {
         const multiGasCopy = Object.assign({}, multiGas);
         const record = Object.assign(multiGasCopy, obj);
         // console.log("---------RECORD ", record);
-        // const sortedRecord = Object.assign({}, sort({ multiGas: record }));
+        const sortedRecord = Object.assign({}, sort({ multiGas: record }));
 
         // console.log("------_Sorted Record ", sortedRecord);
 
-        thirdColumnResult.push({ multiGas: record });
+        thirdColumnResult.push({ multiGas: sortedRecord });
       });
     });
   });
@@ -605,10 +609,10 @@ async function storeServiceSKU(serviceSKUObj) {
 }
 
 // To create cartridge combination
-cartrigeData();
+// cartrigeData();
 
 // To create Hardware SKU
 // createHardwareSKU();
 
 // To create serviceSKU
-// createServiceSKU();
+createServiceSKU();
