@@ -3,7 +3,7 @@ import mySqlConnection from "../../Services/mySQLConnection";
 class CartridgeModel {
   getCartridge = () => {
     const query =
-      "SELECT CartridgeCode AS GasCode, CartridgeName AS GasName, SequenceNo, GroupName FROM Cartridge";
+      "SELECT CartridgeCode , CartridgeName, SequenceNo, GroupName FROM Cartridge";
 
     return new Promise((resolve, reject) => {
       const temp = mySqlConnection.query(query, (err, result) => {
@@ -61,10 +61,12 @@ class CartridgeModel {
         queryParameter,
         (err, result) => {
           if (err) {
-            console.log(
-              "Error for createCartridgeCobination in cartridgeModel ",
-              err
-            );
+            if (err.errno === 1062) console.log("Duplicate entry error");
+            else
+              console.log(
+                "Error for createCartridgeCobination in cartridgeModel ",
+                err
+              );
             return reject({ success: false, message: err });
           }
           return resolve({ success: true, data: result });
@@ -88,6 +90,8 @@ class CartridgeModel {
               err
             );
             return reject({ success: false, message: err });
+          } else if (result.length > 0) {
+            return resolve({ success: false, data: result });
           }
           return resolve({ success: true, data: result });
         }

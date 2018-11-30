@@ -3,6 +3,8 @@ import createCSV from "csv-writer";
 
 import cartridgeModel from "./modules/v1/Cartridge/models/cartridgeModel";
 import hardwareModel from "./modules/v1/Hardware/models/hardwareModel";
+import serviceSKUModel from "./modules/v1/ServiceSKU/models/serviceSKUModel";
+import { resolve } from "url";
 
 async function cartrigeData() {
   try {
@@ -66,15 +68,20 @@ async function createCartridge(cartridgeObj) {
       })
       .value();
 
+    const secondRecord = [
+      {
+        GasCode: multiGroupSeqResult[1].record[0].CartridgeCode,
+        GasName: multiGroupSeqResult[1].record[0].CartridgeName,
+        SequenceNo: multiGroupSeqResult[1].record[0].SequenceNo
+      }
+    ];
+
     const multiGasCombination = await multiGasGenerator(
       multiGroupSeqResult[0].record,
-      multiGroupSeqResult[1].record
+      secondRecord
     );
 
     cartridgeCombination.push(multiGasCombination);
-    // console.log("Multi Group Sequence ", multiGasCombination);
-
-    // Fetch the record from the Multi Gas table
   }
   return cartridgeCombination;
 }
@@ -146,6 +153,42 @@ async function multiGasGenerator(firstRecord, secondRecord) {
   return multiGasCombination;
 }
 
+function sort(obj) {
+  var newArray = [];
+  var newObj = {};
+  for (let a in obj.multiGas) {
+    if (obj.multiGas[a].GasCode) {
+      newObj[a] = {
+        [a]: obj.multiGas[a]
+      };
+      newArray.push(newObj[a]);
+      delete obj.multiGas[a];
+    }
+  }
+
+  newArray.sort(function(a, b) {
+    if (a[Object.keys(a)].GasCode < b[Object.keys(b)].GasCode) return -1;
+    if (a[Object.keys(a)].GasCode > b[Object.keys(b)].GasCode) return 1;
+    return 0;
+  });
+
+  const tempObj = {};
+  newArray.forEach((obj, index) => {
+    if (index === 0) {
+      tempObj.secondRecord = obj[Object.keys(obj)];
+    } else if (index === 1) {
+      tempObj.thirdRecord = obj[Object.keys(obj)];
+    } else if (index === 2) {
+      tempObj.fourthRecord = obj[Object.keys(obj)];
+    } else if (index === 3) {
+      tempObj.fifthRecord = obj[Object.keys(obj)];
+    }
+  });
+  Object.assign(obj.multiGas, tempObj);
+
+  return obj.multiGas;
+}
+
 function multiGasThirdColumn(multiGas, third, fourth, fifth) {
   const thirdColumnResult = [];
   third.forEach(thirdObj => {
@@ -158,12 +201,15 @@ function multiGasThirdColumn(multiGas, third, fourth, fifth) {
 
         const multiGasCopy = Object.assign({}, multiGas);
         const record = Object.assign(multiGasCopy, obj);
+        // console.log("---------RECORD ", record);
+        // const sortedRecord = Object.assign({}, sort({ multiGas: record }));
+
+        // console.log("------_Sorted Record ", sortedRecord);
 
         thirdColumnResult.push({ multiGas: record });
       });
     });
   });
-
   return thirdColumnResult;
 }
 
@@ -181,8 +227,8 @@ function storeCartridgeCombination(cartridgeCombination) {
 function createStandardGas(standardGas) {
   standardGas.forEach(async obj => {
     const cartridgeCombinationObj = {
-      cartridgeCombinationCode: obj.firstRecord.GasCode,
-      cartridgeCombinationName: obj.firstRecord.GasName,
+      cartridgeCombinationCode: obj.firstRecord.CartridgeCode,
+      cartridgeCombinationName: obj.firstRecord.CartridgeName,
       groupName: obj.firstRecord.GroupName
     };
 
@@ -194,9 +240,11 @@ function createSingleGas(singleGas) {
   singleGas.forEach(async obj => {
     const cartridgeCombinationObj = {
       cartridgeCombinationCode:
-        obj.firstRecord.GasCode + obj.seperator + obj.secondRecord.GasCode,
+        obj.firstRecord.CartridgeCode +
+        obj.seperator +
+        obj.secondRecord.GasCode,
       cartridgeCombinationName:
-        obj.firstRecord.GasName + " , " + obj.secondRecord.GasName,
+        obj.firstRecord.CartridgeName + " , " + obj.secondRecord.GasName,
       groupName: obj.firstRecord.GroupName
     };
 
@@ -208,7 +256,7 @@ function createMultiGas(multiGas) {
   multiGas.forEach(objArray => {
     objArray.forEach(async obj => {
       const cartridgeCombinationCode =
-        obj.multiGas.firstRecord.GasCode +
+        obj.multiGas.firstRecord.CartridgeCode +
         obj.multiGas.seperator +
         obj.multiGas.secondRecord.GasCode +
         obj.multiGas.thirdRecord.GasCode +
@@ -225,7 +273,7 @@ function createMultiGas(multiGas) {
           : "," + obj.multiGas.fifthRecord.GasName;
 
       const cartridgeCombinationName =
-        obj.multiGas.firstRecord.GasName +
+        obj.multiGas.firstRecord.CartridgeName +
         "," +
         obj.multiGas.secondRecord.GasName +
         "," +
@@ -239,7 +287,7 @@ function createMultiGas(multiGas) {
         groupName: obj.multiGas.firstRecord.GroupName
       };
 
-      storeCartCombination(cartridgeCombinationObj);
+      await storeCartCombination(cartridgeCombinationObj);
     });
   });
 }
@@ -255,17 +303,30 @@ async function storeCartCombination(cartridgeCombinationObj) {
     console.log("Error for getCartridgeCombinationByCode in app ", error);
   }
 
-  // Insert in the database
-  if (isExist.success && !(isExist.data.length > 0)) {
-    try {
-      await cartridgeModel.createCartridgeCombination(cartridgeCombinationObj);
-    } catch (error) {
+  return new Promise(async (resolve, reject) => {
+    // Insert in the database
+    if (isExist.success && !(isExist.data.length > 0)) {
       console.log(
-        "Error for getCartridgeCombinationByCode for Standard in app ",
-        error
+        "---------",
+        isExist,
+        "cartridgeCombinationObj",
+        cartridgeCombinationObj
       );
+      try {
+        await cartridgeModel.createCartridgeCombination(
+          cartridgeCombinationObj
+        );
+        return resolve(true);
+      } catch (error) {
+        console.log(
+          "Error for getCartridgeCombinationByCode for Standard in app ",
+          error
+        );
+      }
+    } else {
+      return resolve(true);
     }
-  }
+  });
 }
 
 async function createCSVFile() {
@@ -440,8 +501,114 @@ async function createHardwareCSVFile() {
     });
 }
 
+async function createServiceSKU() {
+  let serviceResult;
+  try {
+    serviceResult = await serviceSKUModel.getService();
+  } catch (error) {
+    console.log("Error for getService in createServiceSKU ", error);
+  }
+
+  let yearResult;
+  try {
+    yearResult = await serviceSKUModel.getYear();
+  } catch (error) {
+    console.log("Error for getYear in createServiceSKU ", error);
+  }
+
+  let cartridgeCombinationResult;
+  try {
+    cartridgeCombinationResult = await cartridgeModel.getCartridgeCombination();
+  } catch (error) {
+    console.log("Erorr for getCartridgeCombination in app", error);
+  }
+
+  const serviceSKUCombination = [];
+
+  if (
+    serviceResult &&
+    serviceResult.success &&
+    yearResult &&
+    yearResult.success &&
+    cartridgeCombinationResult &&
+    cartridgeCombinationResult.success
+  ) {
+    if (
+      serviceResult.data.length > 0 &&
+      yearResult.data.length > 0 &&
+      cartridgeCombinationResult.data.length > 0
+    ) {
+      serviceResult.data.forEach(serviceObj => {
+        yearResult.data.forEach(yearObj => {
+          cartridgeCombinationResult.data.forEach(cartridgeObj => {
+            const serviceSKUCode =
+              "SER - " +
+              serviceObj.ServiceCode +
+              " - " +
+              cartridgeObj.CartridgeCombinationCode +
+              " - " +
+              yearObj.YearCode;
+
+            const yearStr = yearObj.YearName.split(" ");
+
+            const serviceSKUName =
+              "Service, " +
+              serviceObj.ServiceName +
+              ", " +
+              cartridgeObj.CartridgeCombinationName +
+              ", " +
+              yearStr[0] +
+              "-" +
+              yearStr[1].toLowerCase();
+
+            const serviceSKUObj = {
+              serviceSKUCode,
+              serviceSKUName
+            };
+
+            serviceSKUCombination.push(serviceSKUObj);
+            storeServiceSKU(serviceSKUObj);
+          });
+        });
+      });
+    }
+  }
+
+  // console.log("--------Service SKU ", serviceSKUCombination);
+}
+
+async function storeServiceSKU(serviceSKUObj) {
+  // Check the combination before store in the database
+  let isExist;
+  try {
+    isExist = await serviceSKUModel.getServiceSKUByCode(
+      serviceSKUObj.serviceSKUCode
+    );
+  } catch (error) {
+    console.log(
+      "Error for getHardwareSKUByCode in storeHardwareSKU app ",
+      error
+    );
+  }
+
+  // Insert in the database
+  if (isExist.success && !(isExist.data.length > 0)) {
+    try {
+      await serviceSKUModel.createServiceSKU(serviceSKUObj);
+    } catch (error) {
+      console.log(
+        "Error for generateHardwareCombination in createHardwareSKU app",
+        error
+      );
+    }
+  }
+}
+
 // To create cartridge combination
 cartrigeData();
 
 // To create Hardware SKU
 // createHardwareSKU();
+
+// To create serviceSKU
+// createServiceSKU();
