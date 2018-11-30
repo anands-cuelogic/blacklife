@@ -575,6 +575,8 @@ async function createServiceSKU() {
           });
         });
       });
+
+      createServiceCSVFile();
     }
   }
 
@@ -606,6 +608,40 @@ async function storeServiceSKU(serviceSKUObj) {
       );
     }
   }
+}
+
+async function createServiceCSVFile() {
+  const createCsvWriter = createCSV.createObjectCsvWriter;
+
+  const csvWriter = createCsvWriter({
+    path: "/home/anandsingh/Desktop/serviceIG.csv",
+    header: [
+      { id: "serviceSKUCode", title: "ServiceSKUCode" },
+      { id: "serviceSKUName", title: "ServiceSKUName" }
+    ]
+  });
+
+  const records = [];
+
+  try {
+    const serviceSKUResult = await serviceSKUModel.getServiceSKU();
+    if (serviceSKUResult.success && serviceSKUResult.data.length > 0) {
+      serviceSKUResult.data.forEach(obj => {
+        records.push({
+          serviceSKUCode: obj.ServiceSKUCode,
+          serviceSKUName: obj.ServiceSKUName
+        });
+      });
+    }
+  } catch (error) {
+    console.log("Error for getCartridgeCombination in app ", error);
+  }
+
+  csvWriter
+    .writeRecords(records) // returns a promise
+    .then(() => {
+      console.log("...Done");
+    });
 }
 
 // To create cartridge combination
