@@ -397,37 +397,6 @@ async function storeCartCombination(cartridgeCombinationObj) {
 	});
 }
 
-async function createCSVFile() {
-	const createCsvWriter = createCSV.createObjectCsvWriter;
-
-	const csvWriter = createCsvWriter({
-		path: "/home/anand/Desktop/file.csv",
-		header: [ { id: "cartridgeCode", title: "CartridgeCode" }, { id: "cartridgeName", title: "CartridgeName" } ]
-	});
-
-	const records = [];
-
-	try {
-		const cartridgeCombinationResult = await cartridgeModel.getCartridgeCombination();
-		if (cartridgeCombinationResult.success && cartridgeCombinationResult.data.length > 0) {
-			cartridgeCombinationResult.data.forEach((obj) => {
-				records.push({
-					cartridgeCode: obj.CartridgeCombinationCode,
-					cartridgeName: obj.CartridgeCombinationName
-				});
-			});
-		}
-	} catch (error) {
-		console.log("Error for getCartridgeCombination in app ", error);
-	}
-
-	csvWriter
-		.writeRecords(records) // returns a promise
-		.then(() => {
-			console.log("...Done");
-		});
-}
-
 async function createHardwareSKU() {
 	try {
 		const countryHardwareMatrixResult = await hardwareModel.getCountryHardwareMatrix();
@@ -460,6 +429,7 @@ async function generateHardwareCombination(hardwareRecord) {
 	try {
 		const cartridgeCombinationResult = await cartridgeModel.getCartridgeCombination();
 		if (cartridgeCombinationResult.success && cartridgeCombinationResult.data.length > 0) {
+			const hardwareIGArr = [];
 			for (const cartridgeObj of cartridgeCombinationResult.data) {
 				const hardwareSKUCode =
 					"G7" +
@@ -477,11 +447,26 @@ async function generateHardwareCombination(hardwareRecord) {
 					", " +
 					hardwareRecord.CountryName;
 
-				await storeHardwareSKU({
-					hardwareCode: hardwareSKUCode,
-					hardwareCombinationName: hardwareSKUCombinationName
-				});
+				hardwareIGArr.push([ hardwareSKUCode, hardwareSKUCombinationName ]);
 			}
+
+			// Chunk the data in 10
+			let i,
+				j,
+				temparray,
+				chunk = 100;
+
+			for (i = 0, j = hardwareIGArr.length; i < j; i += chunk) {
+				temparray = hardwareIGArr.slice(i, i + chunk);
+
+				let hardwareCombinationResponse;
+				try {
+					hardwareCombinationResponse = await storeHardwareSKU(temparray);
+				} catch (error) {
+					console.log("Error for storing ", storeCartCombination.requestedCombination);
+				}
+			}
+
 			createHardwareCSVFile();
 		}
 	} catch (error) {
@@ -491,28 +476,90 @@ async function generateHardwareCombination(hardwareRecord) {
 
 async function storeHardwareSKU(hardwareSKUObj) {
 	// Check the combination before store in the database
-	let isExist;
+	// let isExist;
+	// try {
+	// 	isExist = await hardwareModel.getHardwareSKUByCode(hardwareSKUObj.hardwareCode);
+	// } catch (error) {
+	// 	console.log("Error for getHardwareSKUByCode in storeHardwareSKU app ", error);
+	// }
+
+	// // Insert in the database
+	// if (isExist.success && !(isExist.data.length > 0)) {
 	try {
-		isExist = await hardwareModel.getHardwareSKUByCode(hardwareSKUObj.hardwareCode);
+		await hardwareModel.createHardwareSKU(hardwareSKUObj);
 	} catch (error) {
-		console.log("Error for getHardwareSKUByCode in storeHardwareSKU app ", error);
+		// console.log("Error for generateHardwareCombination in createHardwareSKU app", error);
+	}
+	//}
+}
+
+async function createCSVFile() {
+	const createCsvWriter = createCSV.createObjectCsvWriter;
+
+	const csvWriter = createCsvWriter({
+		path: "/home/anand/Desktop/file.csv",
+		header: [ { id: "cartridgeCode", title: "CartridgeCode" }, { id: "cartridgeName", title: "CartridgeName" } ]
+	});
+
+	const records = [];
+
+	try {
+		const cartridgeCombinationResult = await cartridgeModel.getCartridgeCombination();
+		if (cartridgeCombinationResult.success && cartridgeCombinationResult.data.length > 0) {
+			cartridgeCombinationResult.data.forEach((obj) => {
+				records.push({
+					cartridgeCode: obj.CartridgeCombinationCode,
+					cartridgeName: obj.CartridgeCombinationName
+				});
+			});
+		}
+	} catch (error) {
+		console.log("Error for getCartridgeCombination in app ", error);
 	}
 
-	// Insert in the database
-	if (isExist.success && !(isExist.data.length > 0)) {
-		try {
-			await hardwareModel.createHardwareSKU(hardwareSKUObj);
-		} catch (error) {
-			console.log("Error for generateHardwareCombination in createHardwareSKU app", error);
+	csvWriter
+		.writeRecords(records) // returns a promise
+		.then(() => {
+			console.log("...Done");
+		});
+}
+
+async function createServiceCSVFile() {
+	const createCsvWriter = createCSV.createObjectCsvWriter;
+
+	const csvWriter = createCsvWriter({
+		path: "/home/anand/Desktop/serviceIG.csv",
+		header: [ { id: "serviceSKUCode", title: "ServiceSKUCode" }, { id: "serviceSKUName", title: "ServiceSKUName" } ]
+	});
+
+	const records = [];
+
+	try {
+		const serviceSKUResult = await serviceSKUModel.getServiceSKU();
+		if (serviceSKUResult.success && serviceSKUResult.data.length > 0) {
+			serviceSKUResult.data.forEach((obj) => {
+				records.push({
+					serviceSKUCode: obj.ServiceSKUCode,
+					serviceSKUName: obj.ServiceSKUName
+				});
+			});
 		}
+	} catch (error) {
+		console.log("Error for getCartridgeCombination in app ", error);
 	}
+
+	csvWriter
+		.writeRecords(records) // returns a promise
+		.then(() => {
+			console.log("...Done");
+		});
 }
 
 async function createHardwareCSVFile() {
 	const createCsvWriter = createCSV.createObjectCsvWriter;
 
 	const csvWriter = createCsvWriter({
-		path: "/home/anandsingh/Desktop/hardwareIG.csv",
+		path: "/home/anand/Desktop/hardwareIG.csv",
 		header: [ { id: "SKU", title: "SKU" }, { id: "Description", title: "Description" } ]
 	});
 
@@ -572,9 +619,9 @@ async function createServiceSKU() {
 		cartridgeCombinationResult.success
 	) {
 		if (serviceResult.data.length > 0 && yearResult.data.length > 0 && cartridgeCombinationResult.data.length > 0) {
-			serviceResult.data.forEach((serviceObj) => {
-				yearResult.data.forEach((yearObj) => {
-					cartridgeCombinationResult.data.forEach((cartridgeObj) => {
+			for (const serviceObj of serviceResult.data) {
+				for (const yearObj of yearResult.data) {
+					for (const cartridgeObj of cartridgeCombinationResult.data) {
 						const serviceSKUCode =
 							"SER - " +
 							serviceObj.ServiceCode +
@@ -600,11 +647,28 @@ async function createServiceSKU() {
 							serviceSKUName
 						};
 
-						serviceSKUCombination.push(serviceSKUObj);
-						storeServiceSKU(serviceSKUObj);
-					});
-				});
-			});
+						serviceSKUCombination.push([ serviceSKUCode, serviceSKUName ]);
+						// storeServiceSKU(serviceSKUObj);
+					}
+				}
+			}
+
+			// Chunk the data in 10
+			let i,
+				j,
+				temparray,
+				chunk = 100;
+
+			for (i = 0, j = serviceSKUCombination.length; i < j; i += chunk) {
+				temparray = serviceSKUCombination.slice(i, i + chunk);
+
+				let serviceIGCombination;
+				try {
+					serviceIGCombination = await storeServiceSKU(temparray);
+				} catch (error) {
+					console.log("Error for storing ", error);
+				}
+			}
 
 			createServiceCSVFile();
 		}
@@ -615,59 +679,28 @@ async function createServiceSKU() {
 
 async function storeServiceSKU(serviceSKUObj) {
 	// Check the combination before store in the database
-	let isExist;
-	try {
-		isExist = await serviceSKUModel.getServiceSKUByCode(serviceSKUObj.serviceSKUCode);
-	} catch (error) {
-		console.log("Error for getHardwareSKUByCode in storeHardwareSKU app ", error);
-	}
+	// let isExist;
+	// try {
+	// 	isExist = await serviceSKUModel.getServiceSKUByCode(serviceSKUObj.serviceSKUCode);
+	// } catch (error) {
+	// 	console.log("Error for getHardwareSKUByCode in storeHardwareSKU app ", error);
+	// }
 
 	// Insert in the database
-	if (isExist.success && !(isExist.data.length > 0)) {
-		try {
-			await serviceSKUModel.createServiceSKU(serviceSKUObj);
-		} catch (error) {
-			console.log("Error for generateHardwareCombination in createHardwareSKU app", error);
-		}
-	}
-}
-
-async function createServiceCSVFile() {
-	const createCsvWriter = createCSV.createObjectCsvWriter;
-
-	const csvWriter = createCsvWriter({
-		path: "/home/anandsingh/Desktop/serviceIG.csv",
-		header: [ { id: "serviceSKUCode", title: "ServiceSKUCode" }, { id: "serviceSKUName", title: "ServiceSKUName" } ]
-	});
-
-	const records = [];
-
+	//if (isExist.success && !(isExist.data.length > 0)) {
 	try {
-		const serviceSKUResult = await serviceSKUModel.getServiceSKU();
-		if (serviceSKUResult.success && serviceSKUResult.data.length > 0) {
-			serviceSKUResult.data.forEach((obj) => {
-				records.push({
-					serviceSKUCode: obj.ServiceSKUCode,
-					serviceSKUName: obj.ServiceSKUName
-				});
-			});
-		}
+		await serviceSKUModel.createServiceSKU(serviceSKUObj);
 	} catch (error) {
-		console.log("Error for getCartridgeCombination in app ", error);
+		console.log("Error for generateHardwareCombination in createHardwareSKU app", error);
 	}
-
-	csvWriter
-		.writeRecords(records) // returns a promise
-		.then(() => {
-			console.log("...Done");
-		});
+	//}
 }
 
 // To create cartridge combination
-cartrigeData();
+// cartrigeData();
 
 // To create Hardware SKU
 // createHardwareSKU();
 
 // To create serviceSKU
-// createServiceSKU();
+createServiceSKU();
