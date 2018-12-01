@@ -224,127 +224,160 @@ function storeCartridgeCombination(cartridgeCombination) {
 	createMultiGas(cartridgeCombination[2][0]);
 }
 
-function createStandardGas(standardGas) {
-	standardGas.forEach(async (obj) => {
-		const cartridgeCombinationCode = obj.firstRecord.CartridgeCode;
-		const cartridgeCombinationName = obj.firstRecord.CartridgeName;
-		const groupName = obj.firstRecord.GroupName;
-
+function standardGasCombination(standardGas) {
+	return new Promise(async (resolve, reject) => {
 		const cartCombination = [];
-		let isExist = false;
-		try {
-			const cartObj = await cartridgeModel.getCartridgeCombinationByCode(cartridgeCombinationCode);
-			if (cartObj.success && cartObj.data.length > 0) {
-				isExist = true;
+		for (const obj of standardGas) {
+			const cartridgeCombinationCode = obj.firstRecord.CartridgeCode;
+			const cartridgeCombinationName = obj.firstRecord.CartridgeName;
+			const groupName = obj.firstRecord.GroupName;
+
+			let isExist = false;
+			try {
+				const cartObj = await cartridgeModel.getCartridgeCombinationByCode(cartridgeCombinationCode);
+				if (cartObj.success && cartObj.data.length > 0) {
+					isExist = true;
+				}
+			} catch (error) {
+				console.log("Error for getCartridgeCombinationByCode in app", error);
 			}
-		} catch (error) {
-			console.log("Error for getCartridgeCombinationByCode in app", error);
+			if (!isExist) {
+				cartCombination.push([ cartridgeCombinationCode, cartridgeCombinationName, groupName ]);
+			}
 		}
-		if (!isExist) {
-			cartCombination.push([ cartridgeCombinationCode, cartridgeCombinationName, groupName ]);
-		}
-		if (cartCombination.length > 0) storeCartCombination(cartCombination);
+		return resolve(cartCombination);
 	});
 }
 
-function createSingleGas(singleGas) {
-	const singleGasCartCombination = [];
-	singleGas.forEach(async (obj) => {
-		const cartridgeCombinationCode = obj.firstRecord.CartridgeCode + obj.seperator + obj.secondRecord.GasCode;
-		const cartridgeCombinationName = obj.firstRecord.CartridgeName + " , " + obj.secondRecord.GasName;
-		const groupName = obj.firstRecord.GroupName;
+async function createStandardGas(standardGas) {
+	try {
+		const standardGasCombinationResult = await standardGasCombination(standardGas);
+		if (standardGasCombinationResult.length > 0) {
+			storeCartCombination(standardGasCombinationResult);
+		}
+	} catch (error) {
+		console.log("Error for createStandardGas ", error);
+	}
+}
 
-		// let isExist = false;
-		// try {
-		// 	const cartObj = await cartridgeModel.getCartridgeCombinationByCode(cartridgeCombinationCode);
-		// 	if (cartObj.success && cartObj.data.length > 0) {
-		// 		isExist = true;
-		// 	}
-		// } catch (error) {
-		// 	console.log("Error for getCartridgeCombinationByCode in app", error);
-		// }
-		// if (!isExist) {
-		singleGasCartCombination.push([ cartridgeCombinationCode, cartridgeCombinationName, groupName ]);
-		//}
+function singleGasCombination(singleGas) {
+	return new Promise(async (resolve, reject) => {
+		const singleGasCartCombination = [];
+		for (const obj of singleGas) {
+			const cartridgeCombinationCode = obj.firstRecord.CartridgeCode + obj.seperator + obj.secondRecord.GasCode;
+			const cartridgeCombinationName = obj.firstRecord.CartridgeName + " , " + obj.secondRecord.GasName;
+			const groupName = obj.firstRecord.GroupName;
+
+			let isExist = false;
+			try {
+				const cartObj = await cartridgeModel.getCartridgeCombinationByCode(cartridgeCombinationCode);
+
+				if (cartObj.success && cartObj.data.length > 0) {
+					isExist = true;
+				}
+
+				if (!isExist) {
+					singleGasCartCombination.push([ cartridgeCombinationCode, cartridgeCombinationName, groupName ]);
+				}
+			} catch (error) {
+				console.log("Error for getCartridgeCombinationByCode in app", error);
+			}
+		}
+		return resolve(singleGasCartCombination);
 	});
-	//if (singleGasCartCombination.length > 0) {
-	storeCartCombination(singleGasCartCombination);
-	//}
+}
+
+async function createSingleGas(singleGas) {
+	try {
+		const singleGasCartCombination = await singleGasCombination(singleGas);
+		if (singleGasCartCombination.length > 0) {
+			storeCartCombination(singleGasCartCombination);
+		}
+	} catch (error) {
+		console.log("Error for createSingleGas in app", error);
+	}
+}
+
+function multiGasCombination(multiGas) {
+	return new Promise(async (resolve, reject) => {
+		const cartridgeCombinationArr = [];
+
+		for (const objArray of multiGas) {
+			for (const obj of objArray) {
+				const cartridgeCombinationCode =
+					obj.multiGas.firstRecord.CartridgeCode +
+					obj.multiGas.seperator +
+					obj.multiGas.secondRecord.GasCode +
+					obj.multiGas.thirdRecord.GasCode +
+					obj.multiGas.fourthRecord.GasCode +
+					obj.multiGas.fifthRecord.GasCode;
+
+				const secondGasName =
+					obj.multiGas.secondRecord.GasCode === "X" ? "" : "," + obj.multiGas.secondRecord.GasName;
+				const thirdGasName =
+					obj.multiGas.thirdRecord.GasCode === "X" ? "" : "," + obj.multiGas.thirdRecord.GasName;
+				const fourthGasName =
+					obj.multiGas.fourthRecord.GasCode === "X" ? "" : "," + obj.multiGas.fourthRecord.GasName;
+				const fifthGasName =
+					obj.multiGas.fifthRecord.GasCode === "X" ? "" : "," + obj.multiGas.fifthRecord.GasName;
+
+				const cartridgeCombinationName =
+					obj.multiGas.firstRecord.CartridgeName +
+					secondGasName +
+					thirdGasName +
+					fourthGasName +
+					fifthGasName;
+
+				const cartCombination = [
+					cartridgeCombinationCode,
+					cartridgeCombinationName,
+					obj.multiGas.firstRecord.GroupName
+				];
+
+				let isExist = false;
+
+				try {
+					const cartObj = await cartridgeModel.getCartridgeCombinationByCode(cartCombination[0]);
+
+					if (cartObj.success && cartObj.data.length > 0) {
+						isExist = true;
+						break;
+					}
+				} catch (error) {
+					console.log("Error for getCartridgeCombinationByCode in app", error);
+				}
+				for (const obj of cartridgeCombinationArr) {
+					if (_.includes(obj, cartCombination[0])) {
+						isExist = true;
+						break;
+					}
+				}
+				if (!isExist) {
+					cartridgeCombinationArr.push(cartCombination);
+				}
+			}
+		}
+		return resolve(cartridgeCombinationArr);
+	});
 }
 
 async function createMultiGas(multiGas) {
-	const cartridgeCombinationArr = [];
-	const duplicate = [];
-	multiGas.forEach((objArray) => {
-		objArray.forEach(async (obj) => {
-			const cartridgeCombinationCode =
-				obj.multiGas.firstRecord.CartridgeCode +
-				obj.multiGas.seperator +
-				obj.multiGas.secondRecord.GasCode +
-				obj.multiGas.thirdRecord.GasCode +
-				obj.multiGas.fourthRecord.GasCode +
-				obj.multiGas.fifthRecord.GasCode;
-
-			const secondGasName =
-				obj.multiGas.secondRecord.GasCode === "X" ? "" : "," + obj.multiGas.secondRecord.GasName;
-			const thirdGasName = obj.multiGas.thirdRecord.GasCode === "X" ? "" : "," + obj.multiGas.thirdRecord.GasName;
-			const fourthGasName =
-				obj.multiGas.fourthRecord.GasCode === "X" ? "" : "," + obj.multiGas.fourthRecord.GasName;
-			const fifthGasName = obj.multiGas.fifthRecord.GasCode === "X" ? "" : "," + obj.multiGas.fifthRecord.GasName;
-
-			const cartridgeCombinationName =
-				obj.multiGas.firstRecord.CartridgeName + secondGasName + thirdGasName + fourthGasName + fifthGasName;
-
-			const cartCombination = [
-				cartridgeCombinationCode,
-				cartridgeCombinationName,
-				obj.multiGas.firstRecord.GroupName
-			];
-
-			let isExist = false;
-			for (const obj of cartridgeCombinationArr) {
-				if (_.includes(obj, cartCombination[0])) {
-					duplicate.push(obj);
-					isExist = true;
-					break;
-				}
-				// try {
-				// 	const cartObj = await cartridgeModel.getCartridgeCombinationByCode(cartCombination[0]);
-				// 	if (cartObj.success && cartObj.data.length > 0) {
-				// 		isExist = true;
-				// 		break;
-				// 	}
-				// } catch (error) {
-				// 	console.log("Error for getCartridgeCombinationByCode in app", error);
-				// }
-			}
-
-			if (!isExist) {
-				cartridgeCombinationArr.push(cartCombination);
-			}
-		});
-	});
 	try {
-		console.log(
-			"_______________________________CARTRDIGE ARRAY LENGTH_____________________",
-			cartridgeCombinationArr.length
-		);
-		console.log("--------_Duplicate ", duplicate);
-		console.log("********Actual Arr ", cartridgeCombinationArr);
+		const cartridgeCombinationArr = await multiGasCombination(multiGas);
+
 		// Chunk the data in 10
 		let i,
 			j,
 			temparray,
-			chunk = 10;
-		// console.log("CartridgeCombinationArr ", cartridgeCombinationArr.length);
+			chunk = 100;
+
 		for (i = 0, j = cartridgeCombinationArr.length; i < j; i += chunk) {
 			temparray = cartridgeCombinationArr.slice(i, i + chunk);
 			let storeCartCombinationResponse;
 			try {
 				storeCartCombinationResponse = await storeCartCombination(temparray);
-				// console.log("Success for ", storeCartCombinationResponse.requestedCombination);
 			} catch (error) {
-				// console.log("Error for storing ", storeCartCombination.requestedCombination);
+				console.log("Error for storing ", storeCartCombination.requestedCombination);
 			}
 		}
 	} catch (error) {
