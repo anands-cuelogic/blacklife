@@ -75,6 +75,20 @@ class ServiceSKUModel {
       );
     });
   };
+
+  getServiceSKU = () => {
+    const query = "SELECT ServiceSKUCode, ServiceSKUName FROM ServiceSKU";
+
+    return new Promise((resolve, reject) => {
+      const temp = mySqlConnection.query(query, (err, result) => {
+        if (err) {
+          console.log("Error for getServiceSKUU in serviceSKUModel ", err);
+          return reject({ success: false, message: err });
+        }
+        return resolve({ success: true, data: result });
+      });
+    });
+  };
 }
 
 export default new ServiceSKUModel();
