@@ -5,6 +5,7 @@ import cartridgeModel from "./modules/v1/Cartridge/models/cartridgeModel";
 import hardwareModel from "./modules/v1/Hardware/models/hardwareModel";
 import serviceSKUModel from "./modules/v1/ServiceSKU/models/serviceSKUModel";
 import { resolve } from "url";
+import leaseSKUModel from "./modules/v1/LeaseSKU/models/leaseSKUModel";
 
 async function cartrigeData() {
 	try {
@@ -696,6 +697,83 @@ async function storeServiceSKU(serviceSKUObj) {
 	//}
 }
 
+async function createLeaseSKU() {
+	let leaseSKUResult;
+	try {
+		leaseSKUResult = await leaseSKUModel.getLeaseSKUMatrix();
+	} catch (error) {
+		console.log("Error for getLeaseSKUMatrix createLeaseSKU in app", error);
+	}
+	let cartridgeCombinationResult;
+	try {
+		cartridgeCombinationResult = await cartridgeModel.getCartridgeCombination();
+	} catch (error) {
+		console.log("Error for createLeaseSKU in app", error);
+	}
+
+	if (
+		leaseSKUResult.success &&
+		leaseSKUResult.data.length > 0 &&
+		cartridgeCombinationResult.success &&
+		cartridgeCombinationResult.data.length > 0
+	) {
+		generateLeaseSKUCombination(leaseSKUResult.data, cartridgeCombinationResult.data);
+	}
+}
+
+async function generateLeaseSKUCombination(leaseSKUResult, cartridgeCombinationResult) {
+	try {
+		const leaseSKUArr = [];
+		for (const leaseSKU of leaseSKUResult) {
+			for (const cartrigeObj of cartridgeCombinationResult) {
+				const leaseSKUCode =
+					"CMP-" +
+					leaseSKU.ServiceCode +
+					"-G7" +
+					leaseSKU.HardwareCode +
+					"-" +
+					cartrigeObj.CartridgeCombinationCode +
+					"-" +
+					leaseSKU.CountryCode;
+
+				const leaseSKUName =
+					"Blackline Complete, " +
+					leaseSKU.ServiceName +
+					", " +
+					leaseSKU.HardwareName +
+					", " +
+					cartrigeObj.CartridgeCombinationName +
+					", " +
+					leaseSKU.CountryName;
+				leaseSKUArr.push([ leaseSKUCode, leaseSKUName ]);
+			}
+		}
+		// Chunk the data in 10
+		let i,
+			j,
+			temparray,
+			chunk = 100;
+
+		for (i = 0, j = leaseSKUArr.length; i < j; i += chunk) {
+			temparray = leaseSKUArr.slice(i, i + chunk);
+
+			try {
+				await storeLeaseSKU(temparray);
+			} catch (error) {
+				console.log("Error for storing ", storeCartCombination.requestedCombination);
+			}
+		}
+	} catch (error) {}
+}
+
+async function storeLeaseSKU(serviceSKUObj) {
+	try {
+		await leaseSKUModel.createLeaseSKU(serviceSKUObj);
+	} catch (error) {
+		console.log("Error for createLeaseSKU in storeLeaseSKU app", error);
+	}
+}
+
 // To create cartridge combination
 // cartrigeData();
 
@@ -703,4 +781,7 @@ async function storeServiceSKU(serviceSKUObj) {
 // createHardwareSKU();
 
 // To create serviceSKU
-createServiceSKU();
+// createServiceSKU();
+
+// To create LeaseSKU
+createLeaseSKU();
