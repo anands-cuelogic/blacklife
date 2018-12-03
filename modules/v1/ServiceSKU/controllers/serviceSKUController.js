@@ -80,11 +80,11 @@ class ServiceSKUController {
           for (const yearObj of yearResult.data) {
             for (const cartridgeObj of cartridgeCombinationResult.data) {
               const serviceSKUCode =
-                "SER - " +
+                "SER-" +
                 serviceObj.ServiceCode +
-                " - " +
+                "-" +
                 cartridgeObj.CartridgeCombinationCode +
-                " - " +
+                "-" +
                 yearObj.YearCode;
 
               const yearStr = yearObj.YearName.split(" ");
