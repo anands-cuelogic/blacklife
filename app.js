@@ -5,7 +5,7 @@ import serviceSKUController from "./modules/v1/ServiceSKU/controllers/serviceSKU
 import leaseSKUController from "./modules/v1/LeaseSKU/controllers/leaseSKUController";
 
 // To create cartridge combination
-cartridgeController.cartrigeData();
+// cartridgeController.cartrigeData();
 
 // To create Hardware SKU
 // hardwareController.createHardwareSKU();
@@ -14,4 +14,4 @@ cartridgeController.cartrigeData();
 // serviceSKUController.createServiceSKU();
 
 // To create LeaseSKU
-// leaseSKUController.createLeaseSKU();
+leaseSKUController.createLeaseSKU();

@@ -474,6 +474,129 @@ class CartridgeController {
         console.log("...Done");
       });
   };
+
+  calculateCartridgePrice = async cartridgeObj => {
+    // console.log("Cartridge Object ", cartridgeObj);
+    const cartridgeArr = cartridgeObj.CartridgeCombinationCode.split("-");
+    // console.log(cartridgeArr);
+    let USD = 0;
+    let CAD = 0;
+    let GBP = 0;
+    let EUR = 0;
+    let AUD = 0;
+    if (cartridgeArr.length > 1) {
+      const gasArr = cartridgeArr[1].split("");
+      // console.log(gasArr);
+
+      const filteredGas = gasArr.filter(obj => obj !== "X");
+      for (const gasObj of filteredGas) {
+        try {
+          const priceResult = await cartridgeModel.getGasPrice(gasObj);
+          if (priceResult.success && priceResult.data.length > 0) {
+            // Store the price of respective currency
+            this.getPriceForRegion(priceResult.data, USD, CAD, GBP, EUR, AUD);
+            console.log("USD ", USD);
+          }
+        } catch (error) {
+          console.log("Error for getPrice in cartridgeController ", error);
+        }
+      }
+
+      if (cartridgeArr[0] === "P") {
+        console.log("---------Hey");
+        try {
+          const cartridgePriceResult = await cartridgeModel.getCartridgeCurrency(
+            {
+              quantity: 4,
+              CartridgeCode: "P"
+            }
+          );
+          if (
+            cartridgePriceResult.success &&
+            cartridgePriceResult.data.length > 0
+          ) {
+            // Store the price of respective currency
+            this.getPriceForRegion(
+              cartridgePriceResult.data,
+              USD,
+              CAD,
+              GBP,
+              EUR,
+              AUD
+            );
+            console.log("------BYE", USD);
+          }
+        } catch (error) {
+          console.log(
+            "Error for getCartridgeCurrency in cartridgeController ",
+            error
+          );
+        }
+        await this.calculatePrice(filteredGas, USD, CAD, GBP, EUR, AUD);
+      } else {
+        await this.calculatePrice(filteredGas, USD, CAD, GBP, EUR, AUD);
+      }
+    }
+  };
+
+  calculatePrice = (filteredGas, USD, CAD, GBP, EUR, AUD) => {
+    return new Promise(async (resolve, reject) => {
+      let cartridgeCode;
+      if (filteredGas.length === 0) {
+        cartridgeCode = "Z";
+      } else if (filteredGas.length === 1) {
+        cartridgeCode = "S";
+      } else if (filteredGas.length === 2) {
+        cartridgeCode = "M2";
+      } else if (filteredGas.length === 3) {
+        cartridgeCode = "M3";
+      } else if (filteredGas.length === 4) {
+        cartridgeCode = "M";
+      }
+      try {
+        const cartridgePriceResult = await cartridgeModel.getCartridgeCurrency({
+          quantity: filteredGas.length,
+          CartridgeCode: cartridgeCode
+        });
+        if (
+          cartridgePriceResult.success &&
+          cartridgePriceResult.data.length > 0
+        ) {
+          // Store the price of respective currency
+          this.getPriceForRegion(
+            cartridgePriceResult.data,
+            USD,
+            CAD,
+            GBP,
+            EUR,
+            AUD
+          );
+        }
+        return resolve(true);
+      } catch (error) {
+        console.log(
+          "Error for getCartridgeCurrency in cartridgeController ",
+          error
+        );
+      }
+    });
+  };
+
+  getPriceForRegion = (priceResult, USD, CAD, GBP, EUR, AUD) => {
+    priceResult.forEach(obj => {
+      if (obj.CurrencyName === "USD") {
+        USD += obj.Price;
+      } else if (obj.CurrencyName === "CAD") {
+        CAD += obj.Price;
+      } else if (obj.CurrencyName === "GBP") {
+        GBP += obj.Price;
+      } else if (obj.CurrencyName === "EUR") {
+        EUR += obj.Price;
+      } else if (obj.CurrencyName === "AUD") {
+        AUD += obj.Price;
+      }
+    });
+  };
 }
 
 export default new CartridgeController();

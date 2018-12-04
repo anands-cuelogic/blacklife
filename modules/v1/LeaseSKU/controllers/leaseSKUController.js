@@ -5,6 +5,7 @@ import * as excel from "xlsx";
 import { cpus } from "os";
 import serviceSKUModel from "../../ServiceSKU/models/serviceSKUModel";
 import hardwareModel from "../../Hardware/models/hardwareModel";
+import cartridgeController from "../../Cartridge/controllers/cartridgeController";
 
 class LeaseSKUController {
   createLeaseSKU = async () => {
@@ -27,12 +28,12 @@ class LeaseSKUController {
       cartridgeCombinationResult.success &&
       cartridgeCombinationResult.data.length > 0
     ) {
-      const leaseSKUCombination = await this.generateLeaseSKUCombination(
-        leaseSKUResult.data,
-        cartridgeCombinationResult.data
-      );
+      // const leaseSKUCombination = await this.generateLeaseSKUCombination(
+      //   leaseSKUResult.data,
+      //   cartridgeCombinationResult.data
+      // );
       // this.createLeaseSKUCSVFile(leaseSKUCombination);
-      this.createXLSXFile(leaseSKUCombination);
+      this.createXLSXFile();
     }
   };
 
@@ -164,7 +165,7 @@ class LeaseSKUController {
     }
   };
 
-  createXLSXFile = async leaseSKUCombination => {
+  createXLSXFile = async () => {
     const records = [];
 
     try {
@@ -189,10 +190,21 @@ class LeaseSKUController {
       excel.utils.book_append_sheet(Workbook, leaseSKUSheet, "CMP IG");
 
       // Cartridge Data
+      // Cartridge Data
       const cartridgeRecords = [];
       const cartridgeSKUResult = await cartridgeModel.getCartridgeCombination();
       if (cartridgeSKUResult.success && cartridgeSKUResult.data.length > 0) {
         cartridgeSKUResult.data.forEach(obj => {
+          // Calculate the price
+
+          cartridgeController.calculateCartridgePrice({
+            CartridgeCombinationCode: "P-DOPV",
+            CartridgeCombinationName:
+              "G7 Pumped Multi-gas Cartridge,LEL-I,O2,SO2,SO2"
+          });
+          console.log(obj);
+          return 1;
+
           cartridgeRecords.push({
             SKU: obj.CartridgeCombinationCode,
             Description: obj.CartridgeCombinationName
