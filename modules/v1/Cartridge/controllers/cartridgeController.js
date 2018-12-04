@@ -66,17 +66,8 @@ class CartridgeController {
         })
         .value();
 
-      const secondRecord = [
-        {
-          GasCode: multiGroupSeqResult[1].record[0].CartridgeCode,
-          GasName: multiGroupSeqResult[1].record[0].CartridgeName,
-          SequenceNo: multiGroupSeqResult[1].record[0].SequenceNo
-        }
-      ];
-
       const multiGasCombination = await this.multiGasGenerator(
-        multiGroupSeqResult[0].record,
-        multiGroupSeqResult[1].record
+        multiGroupSeqResult[0].record
       );
 
       cartridgeCombination.push(multiGasCombination);
@@ -107,7 +98,7 @@ class CartridgeController {
     }
   };
 
-  multiGasGenerator = async (firstRecord, secondRecord) => {
+  multiGasGenerator = async firstRecord => {
     const multiGasCombination = [];
 
     // Get the multi gas
@@ -130,26 +121,20 @@ class CartridgeController {
 
     if (multiGasResult) {
       firstRecord.forEach(firstRecordObj => {
-        secondRecord.forEach(secondRecordObj => {
-          const multiGas = {
-            firstRecord: firstRecordObj,
-            seperator: "-",
-            secondRecord: {
-              GasCode: secondRecordObj.CartridgeCode,
-              GasName: secondRecordObj.CartridgeName,
-              SequenceNo: secondRecordObj.SequenceNo
-            }
-          };
+        const multiGas = {
+          firstRecord: firstRecordObj,
+          seperator: "-"
+        };
 
-          // Call the third column of multi gas
-          const multiGasThirdColumnResult = this.multiGasThirdColumn(
-            multiGas,
-            multiGasGroupResult[0].record,
-            multiGasGroupResult[1].record,
-            multiGasGroupResult[2].record
-          );
-          multiGasCombination.push(multiGasThirdColumnResult);
-        });
+        // Call the third column of multi gas
+        const multiGasThirdColumnResult = this.multiGasThirdColumn(
+          multiGas,
+          multiGasGroupResult[0].record,
+          multiGasGroupResult[1].record,
+          multiGasGroupResult[2].record,
+          multiGasGroupResult[3].record
+        );
+        multiGasCombination.push(multiGasThirdColumnResult);
       });
     }
     return multiGasCombination;
@@ -191,30 +176,34 @@ class CartridgeController {
     return obj.multiGas;
   };
 
-  multiGasThirdColumn = (multiGas, third, fourth, fifth) => {
+  multiGasThirdColumn = (multiGas, second, third, fourth, fifth) => {
     const thirdColumnResult = [];
-    third.forEach(thirdObj => {
-      fourth.forEach(fourthObj => {
-        fifth.forEach(fifthObj => {
-          const obj = {};
-          obj.thirdRecord = thirdObj;
-          obj.fourthRecord = fourthObj;
-          obj.fifthRecord = fifthObj;
+    second.forEach(secondObj => {
+      third.forEach(thirdObj => {
+        fourth.forEach(fourthObj => {
+          fifth.forEach(fifthObj => {
+            const obj = {};
+            obj.secondRecord = secondObj;
+            obj.thirdRecord = thirdObj;
+            obj.fourthRecord = fourthObj;
+            obj.fifthRecord = fifthObj;
 
-          const multiGasCopy = Object.assign({}, multiGas);
-          const record = Object.assign(multiGasCopy, obj);
-          // console.log("---------RECORD ", record);
-          const sortedRecord = Object.assign(
-            {},
-            this.sort({ multiGas: record })
-          );
+            const multiGasCopy = Object.assign({}, multiGas);
+            const record = Object.assign(multiGasCopy, obj);
+            // console.log("---------RECORD ", record);
+            const sortedRecord = Object.assign(
+              {},
+              this.sort({ multiGas: record })
+            );
 
-          // console.log("------_Sorted Record ", sortedRecord);
+            // console.log("------_Sorted Record ", sortedRecord);
 
-          thirdColumnResult.push({ multiGas: sortedRecord });
+            thirdColumnResult.push({ multiGas: sortedRecord });
+          });
         });
       });
     });
+
     return thirdColumnResult;
   };
 
