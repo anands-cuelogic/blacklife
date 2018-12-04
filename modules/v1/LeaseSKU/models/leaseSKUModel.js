@@ -25,7 +25,7 @@ class LeaseSKUModel {
 
     return new Promise((resolve, reject) => {
       const temp = mySqlConnection.query(query, [parameters], (err, result) => {
-        console.log("Temp ", temp.sql);
+        // console.log("Temp ", temp.sql);
         if (err) {
           console.log("Error for LeaseSKU in LeaseSKUModel ", err);
           return reject({ success: false, message: err });
