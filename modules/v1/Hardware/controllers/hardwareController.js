@@ -2,6 +2,8 @@ import hardwareModel from "../models/hardwareModel";
 import cartridgeModel from "../../Cartridge/models/cartridgeModel";
 import _ from "lodash";
 import createCSV from "csv-writer";
+import { resolve } from "dns";
+import cartridgeController from "../../Cartridge/controllers/cartridgeController";
 
 class HardwareController {
   createHardwareSKU = async () => {
@@ -45,7 +47,6 @@ class HardwareController {
         const hardwareIGArr = [];
         for (const cartridgeObj of cartridgeCombinationResult.data) {
           const hardwareSKUCode =
-            "G7" +
             hardwareRecord.HardwareCode +
             "-" +
             cartridgeObj.CartridgeCombinationCode +
@@ -142,6 +143,32 @@ class HardwareController {
       .then(() => {
         console.log("...Done");
       });
+  };
+
+  calculateHardware = (hardwareCode, countryCode) => {
+    return new Promise(async (resolve, reject) => {
+      const HardwarePrice = {
+        USD: 0,
+        CAD: 0,
+        GBP: 0,
+        EUR: 0,
+        AUD: 0
+      };
+
+      const HardwarePriceResult = await hardwareModel.getHardwarePrice({
+        HardwareCode: hardwareCode,
+        CountryCode: countryCode
+      });
+
+      if (HardwarePriceResult.success && HardwarePriceResult.data.length > 0) {
+        cartridgeController.getPriceForRegion(
+          HardwarePriceResult.data,
+          HardwarePrice
+        );
+      }
+
+      return resolve(HardwarePrice);
+    });
   };
 }
 
