@@ -111,6 +111,7 @@ class HardwareController {
     }
     //}
   };
+
   createHardwareCSVFile = async () => {
     const createCsvWriter = createCSV.createObjectCsvWriter;
 
@@ -155,10 +156,15 @@ class HardwareController {
         AUD: 0
       };
 
-      const HardwarePriceResult = await hardwareModel.getHardwarePrice({
-        HardwareCode: hardwareCode,
-        CountryCode: countryCode
-      });
+      let HardwarePriceResult;
+      try {
+        HardwarePriceResult = await hardwareModel.getHardwarePrice({
+          HardwareCode: hardwareCode,
+          CountryCode: countryCode
+        });
+      } catch (error) {
+        console.log("Error for getHardwarePrice in hardwareController ", error);
+      }
 
       if (HardwarePriceResult.success && HardwarePriceResult.data.length > 0) {
         cartridgeController.getPriceForRegion(

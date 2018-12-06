@@ -3,6 +3,7 @@ import cartridgeController from "./modules/v1/Cartridge/controllers/cartridgeCon
 import hardwareController from "./modules/v1/Hardware/controllers/hardwareController";
 import serviceSKUController from "./modules/v1/ServiceSKU/controllers/serviceSKUController";
 import leaseSKUController from "./modules/v1/LeaseSKU/controllers/leaseSKUController";
+import createXLSX from "./modules/v1/lib/createXLSX";
 
 // To create cartridge combination
 // cartridgeController.cartrigeData();
@@ -14,4 +15,7 @@ import leaseSKUController from "./modules/v1/LeaseSKU/controllers/leaseSKUContro
 // serviceSKUController.createServiceSKU();
 
 // To create LeaseSKU
-leaseSKUController.createLeaseSKU();
+// leaseSKUController.createLeaseSKU();
+
+// Generate XLSX file
+// createXLSX.createXLSXFile();

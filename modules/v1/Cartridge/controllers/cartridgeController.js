@@ -42,20 +42,13 @@ class CartridgeController {
   createCartridge = async cartridgeObj => {
     const cartridgeCombination = [];
 
-    //console.log("Cartridge Data ", cartridgeObj.key);
-
     if (cartridgeObj.key === "STANDARD") {
       return [{ firstRecord: cartridgeObj.record[0] }];
     } else if (cartridgeObj.key === "SINGLE") {
-      // console.log(cartridgeObj.key, " ", cartridgeObj.record.length);
-
       for (const singleObj of cartridgeObj.record) {
-        // singleGasGenerator(cartridgeObj.record[0].CartridgeCode);
-
         cartridgeCombination.push(await this.singleGasGenerator(singleObj));
       }
     } else if (cartridgeObj.key === "MULTI") {
-      console.log(cartridgeObj.key, " ", cartridgeObj.record.length);
       const multiGroupSeqResult = _.chain(cartridgeObj.record)
         .groupBy("SequenceNo")
         .map((value, key) => {
@@ -190,13 +183,11 @@ class CartridgeController {
 
             const multiGasCopy = Object.assign({}, multiGas);
             const record = Object.assign(multiGasCopy, obj);
-            // console.log("---------RECORD ", record);
+
             const sortedRecord = Object.assign(
               {},
               this.sort({ multiGas: record })
             );
-
-            // console.log("------_Sorted Record ", sortedRecord);
 
             thirdColumnResult.push({ multiGas: sortedRecord });
           });
@@ -392,7 +383,7 @@ class CartridgeController {
     try {
       const cartridgeCombinationArr = await this.multiGasCombination(multiGas);
 
-      // Chunk the data in 10
+      // Chunk the data in 100
       let i,
         j,
         temparray,

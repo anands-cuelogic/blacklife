@@ -162,9 +162,16 @@ class ServiceSKUController {
     return new Promise(async (resolve, reject) => {
       const serviceSKUArr = serviceSKUObj.ServiceSKUCode.split("-");
 
-      const servicePrice = await this.calculateServiceSKUPrice(
-        serviceSKUArr[1]
-      );
+      let servicePrice;
+      try {
+        servicePrice = await this.calculateServiceSKUPrice(serviceSKUArr[1]);
+      } catch (error) {
+        console.log(
+          "Error for calculateServiceSKUPrice in serviceSKUController",
+          error
+        );
+        return reject(servicePrice);
+      }
 
       let cartridgePrice;
       if (serviceSKUArr.length === 4) {
@@ -177,15 +184,33 @@ class ServiceSKUController {
           AUD: 0
         };
       } else {
-        cartridgePrice = await cartridgeController.calculateCartridgePrice({
-          CartridgeCombinationCode: serviceSKUArr[2] + "-" + serviceSKUArr[3]
-        });
+        try {
+          cartridgePrice = await cartridgeController.calculateCartridgePrice({
+            CartridgeCombinationCode: serviceSKUArr[2] + "-" + serviceSKUArr[3]
+          });
+        } catch (error) {
+          console.log(
+            "Error for cartridgeController.calculateCartridgePrice in serviceSKUController ",
+            error
+          );
+          return reject(servicePrice);
+        }
       }
       const yearStr = serviceSKUArr[serviceSKUArr.length - 1];
       const yearArr = yearStr.split("");
 
       if (yearArr[1].toLowerCase() === "y") {
-        const discountPercentage = await yearsModel.getYearDiscount(yearStr);
+        let discountPercentage;
+        try {
+          discountPercentage = await yearsModel.getYearDiscount(yearStr);
+        } catch (error) {
+          console.log(
+            "Error for yearsModel.getYearDiscount in serviceSKUController",
+            error
+          );
+          return reject(servicePrice);
+        }
+
         const discount =
           parseInt(discountPercentage.data[0].Discount, 10) / 100;
 
@@ -235,9 +260,18 @@ class ServiceSKUController {
         AUD: 0
       };
 
-      const ServiceSKUPriceResult = await serviceSKUModel.getServiceSKUPrice(
-        serviceSKUCode
-      );
+      let ServiceSKUPriceResult;
+      try {
+        ServiceSKUPriceResult = await serviceSKUModel.getServiceSKUPrice(
+          serviceSKUCode
+        );
+      } catch (error) {
+        console.log(
+          "Error for serviceSKUModel.getServiceSKUPrice in serviceSKUController",
+          error
+        );
+        return reject(ServiceSKUPrice);
+      }
 
       if (
         ServiceSKUPriceResult.success &&
@@ -250,7 +284,14 @@ class ServiceSKUController {
       }
 
       if (ServiceSKUPriceResult.data[0].GroupName.toLowerCase() === "ptt") {
-        const pptPriceResult = await this.getPTTPrice(serviceSKUCode);
+        let pptPriceResult;
+        try {
+          pptPriceResult = await this.getPTTPrice(serviceSKUCode);
+        } catch (error) {
+          console.log("Error for getPTTPrice in serviceSKUController ", error);
+          return reject(ServiceSKUPrice);
+        }
+
         ServiceSKUPrice.USD += pptPriceResult.USD;
         ServiceSKUPrice.CAD += pptPriceResult.CAD;
         ServiceSKUPrice.GBP += pptPriceResult.GBP;
@@ -265,9 +306,19 @@ class ServiceSKUController {
   getPTTPrice = serviceSKUCode => {
     return new Promise(async (resolve, reject) => {
       const pptBaseSerivceCodeArr = serviceSKUCode.split("");
-      const pptPrice = await this.calculateServiceSKUPrice(
-        pptBaseSerivceCodeArr[0] + pptBaseSerivceCodeArr[1]
-      );
+      let pptPrice;
+      try {
+        pptPrice = await this.calculateServiceSKUPrice(
+          pptBaseSerivceCodeArr[0] + pptBaseSerivceCodeArr[1]
+        );
+      } catch (error) {
+        console.log(
+          "Error for calculateServiceSKUPrice in getPTTPrice serviceSKUController ",
+          error
+        );
+        return reject(pptPrice);
+      }
+
       return resolve(pptPrice);
     });
   };
