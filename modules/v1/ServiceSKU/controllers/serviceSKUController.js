@@ -161,12 +161,13 @@ class ServiceSKUController {
   getServiceSKUPrice = serviceSKUObj => {
     return new Promise(async (resolve, reject) => {
       const serviceSKUArr = serviceSKUObj.ServiceSKUCode.split("-");
+
       const servicePrice = await this.calculateServiceSKUPrice(
         serviceSKUArr[1]
       );
 
       let cartridgePrice;
-      if (serviceSKUArr.length === 5) {
+      if (serviceSKUArr.length === 4) {
         // Standard Cartridge
         cartridgePrice = {
           USD: 0,
@@ -226,9 +227,6 @@ class ServiceSKUController {
 
   calculateServiceSKUPrice = serviceSKUCode => {
     return new Promise(async (resolve, reject) => {
-      const ServiceSKUPriceResult = await serviceSKUModel.getServiceSKUPrice(
-        serviceSKUCode
-      );
       const ServiceSKUPrice = {
         USD: 0,
         CAD: 0,
@@ -236,6 +234,10 @@ class ServiceSKUController {
         EUR: 0,
         AUD: 0
       };
+
+      const ServiceSKUPriceResult = await serviceSKUModel.getServiceSKUPrice(
+        serviceSKUCode
+      );
 
       if (
         ServiceSKUPriceResult.success &&
@@ -246,7 +248,27 @@ class ServiceSKUController {
           ServiceSKUPrice
         );
       }
+
+      if (ServiceSKUPriceResult.data[0].GroupName.toLowerCase() === "ptt") {
+        const pptPriceResult = await this.getPTTPrice(serviceSKUCode);
+        ServiceSKUPrice.USD += pptPriceResult.USD;
+        ServiceSKUPrice.CAD += pptPriceResult.CAD;
+        ServiceSKUPrice.GBP += pptPriceResult.GBP;
+        ServiceSKUPrice.EUR += pptPriceResult.EUR;
+        ServiceSKUPrice.AUD += pptPriceResult.AUD;
+      }
+
       return resolve(ServiceSKUPrice);
+    });
+  };
+
+  getPTTPrice = serviceSKUCode => {
+    return new Promise(async (resolve, reject) => {
+      const pptBaseSerivceCodeArr = serviceSKUCode.split("");
+      const pptPrice = await this.calculateServiceSKUPrice(
+        pptBaseSerivceCodeArr[0] + pptBaseSerivceCodeArr[1]
+      );
+      return resolve(pptPrice);
     });
   };
 }

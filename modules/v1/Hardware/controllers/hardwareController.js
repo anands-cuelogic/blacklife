@@ -145,7 +145,7 @@ class HardwareController {
       });
   };
 
-  calculateHardware = (hardwareCode, countryCode) => {
+  calculateHardwarePrice = (hardwareCode, countryCode) => {
     return new Promise(async (resolve, reject) => {
       const HardwarePrice = {
         USD: 0,

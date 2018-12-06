@@ -9,6 +9,7 @@ import cartridgeController from "../../Cartridge/controllers/cartridgeController
 import { resolve } from "path";
 import serviceSKUController from "../../ServiceSKU/controllers/serviceSKUController";
 import hardwareController from "../../Hardware/controllers/hardwareController";
+import SKULib from "../../lib/SKULib";
 
 class LeaseSKUController {
   createLeaseSKU = async () => {
@@ -31,10 +32,11 @@ class LeaseSKUController {
       cartridgeCombinationResult.success &&
       cartridgeCombinationResult.data.length > 0
     ) {
-      //   const leaseSKUCombination = await this.generateLeaseSKUCombination(
-      //     leaseSKUResult.data,
-      //     cartridgeCombinationResult.data
-      //   );
+      console.log("Creating Lease Combination");
+      const leaseSKUCombination = await this.generateLeaseSKUCombination(
+        leaseSKUResult.data,
+        cartridgeCombinationResult.data
+      );
       // this.createLeaseSKUCSVFile(leaseSKUCombination);
       this.createXLSXFile();
     }
@@ -189,11 +191,11 @@ class LeaseSKUController {
             ["Item 2"]: obj.Item2,
             ["Item 3"]: obj.Item3,
             ["Item 4"]: obj.Item4,
-            USD: SKUPrice.USD,
-            CAD: SKUPrice.CAD,
-            GBP: SKUPrice.GBP,
-            EUR: SKUPrice.EUR,
-            AUD: SKUPrice.AUD
+            USD: "$" + SKULib.numberWithCommas(SKUPrice.USD),
+            CAD: "$" + SKULib.numberWithCommas(SKUPrice.CAD),
+            GBP: "$" + SKULib.numberWithCommas(SKUPrice.GBP),
+            EUR: "$" + SKULib.numberWithCommas(SKUPrice.EUR),
+            AUD: "$" + SKULib.numberWithCommas(SKUPrice.AUD)
           });
         }
       }
@@ -218,13 +220,13 @@ class LeaseSKUController {
             obj
           );
           cartridgeRecords.push({
-            SKU: "CART-" + obj.CartridgeCombinationCode,
+            SKU: "SER-CART-" + obj.CartridgeCombinationCode + "-1Y",
             Description: obj.CartridgeCombinationName,
-            USD: cartridgePrice.USD,
-            CAD: cartridgePrice.CAD,
-            GBP: cartridgePrice.GBP,
-            EUR: cartridgePrice.EUR,
-            AUD: cartridgePrice.AUD
+            USD: "$" + SKULib.numberWithCommas(cartridgePrice.USD),
+            CAD: "$" + SKULib.numberWithCommas(cartridgePrice.CAD),
+            GBP: "$" + SKULib.numberWithCommas(cartridgePrice.GBP),
+            EUR: "$" + SKULib.numberWithCommas(cartridgePrice.EUR),
+            AUD: "$" + SKULib.numberWithCommas(cartridgePrice.AUD)
           });
         }
       }
@@ -267,11 +269,11 @@ class LeaseSKUController {
               gas +
               "-" +
               serviceSKUCodeArr[serviceSKUCodeArr.length - 1],
-            USD: serviceSKUPrice.USD,
-            CAD: serviceSKUPrice.CAD,
-            GBP: serviceSKUPrice.GBP,
-            EUR: serviceSKUPrice.EUR,
-            AUD: serviceSKUPrice.AUD
+            USD: "$" + SKULib.numberWithCommas(serviceSKUPrice.USD),
+            CAD: "$" + SKULib.numberWithCommas(serviceSKUPrice.CAD),
+            GBP: "$" + SKULib.numberWithCommas(serviceSKUPrice.GBP),
+            EUR: "$" + SKULib.numberWithCommas(serviceSKUPrice.EUR),
+            AUD: "$" + SKULib.numberWithCommas(serviceSKUPrice.AUD)
           });
         }
       }
@@ -287,12 +289,42 @@ class LeaseSKUController {
       const hardwareRecords = [];
       const hardwareSKUResult = await hardwareModel.getHardwareSKU();
       if (hardwareSKUResult.success && hardwareSKUResult.data.length > 0) {
-        hardwareSKUResult.data.forEach(obj => {
+        const hardwarePrice = hardwareController.calculateHardwarePrice();
+        for (const obj of hardwareSKUResult.data) {
+          const hardwareSKUArr = obj.HardwareSKUCode.split("-");
+          const hardwarePrice = await hardwareController.calculateHardwarePrice(
+            hardwareSKUArr[0],
+            hardwareSKUArr[hardwareSKUArr.length - 1]
+          );
+
+          let hardwareItemObj = {};
+          if (hardwareSKUArr.length === 3) {
+            hardwareItemObj.item1 =
+              hardwareSKUArr[0] +
+              "-" +
+              hardwareSKUArr[hardwareSKUArr.length - 1];
+            hardwareItemObj.item2 = "CART-" + hardwareSKUArr[1];
+          } else {
+            hardwareItemObj.item1 =
+              hardwareSKUArr[0] +
+              "-" +
+              hardwareSKUArr[hardwareSKUArr.length - 1];
+            hardwareItemObj.item2 =
+              "CART-" + hardwareSKUArr[1] + "-" + hardwareSKUArr[2];
+          }
+
           hardwareRecords.push({
             SKU: obj.HardwareSKUCode,
-            Description: obj.HardwareSKUName
+            Description: obj.HardwareSKUName,
+            ["Item 1"]: hardwareItemObj.item1,
+            ["Item 2"]: hardwareItemObj.item2,
+            USD: "$" + SKULib.numberWithCommas(hardwarePrice.USD),
+            CAD: "$" + SKULib.numberWithCommas(hardwarePrice.CAD),
+            GBP: "$" + SKULib.numberWithCommas(hardwarePrice.GBP),
+            EUR: "$" + SKULib.numberWithCommas(hardwarePrice.EUR),
+            AUD: "$" + SKULib.numberWithCommas(hardwarePrice.AUD)
           });
-        });
+        }
       }
       const hardwareSheet = excel.utils.json_to_sheet(hardwareRecords, {
         dateNF: "mm/dd/yy hh:mm:ss"
@@ -326,7 +358,7 @@ class LeaseSKUController {
         );
 
         // Get the Hardware Price
-        const HardwarePrice = await hardwareController.calculateHardware(
+        const HardwarePrice = await hardwareController.calculateHardwarePrice(
           SKUArr[2],
           SKUArr[SKUArr.length - 1]
         );

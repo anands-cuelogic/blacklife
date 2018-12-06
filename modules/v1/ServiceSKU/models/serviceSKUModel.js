@@ -87,7 +87,7 @@ class ServiceSKUModel {
   };
 
   getServiceSKUPrice = parameters => {
-    const query = `SELECT  Price, ServiceCode,CurrencyName FROM ServiceCurrencyMatrix scm
+    const query = `SELECT  Price, ServiceCode,CurrencyName,GroupName FROM ServiceCurrencyMatrix scm
 		JOIN Service s ON s.idService = scm.ServiceId AND s.ServiceCode IN (?)
 		JOIN Currency c ON c.idCurrency = scm.CurrencyId`;
 
