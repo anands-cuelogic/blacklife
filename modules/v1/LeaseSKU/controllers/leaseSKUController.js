@@ -5,6 +5,11 @@ import * as excel from "xlsx";
 import { cpus } from "os";
 import serviceSKUModel from "../../ServiceSKU/models/serviceSKUModel";
 import hardwareModel from "../../Hardware/models/hardwareModel";
+import cartridgeController from "../../Cartridge/controllers/cartridgeController";
+import { resolve } from "path";
+import serviceSKUController from "../../ServiceSKU/controllers/serviceSKUController";
+import hardwareController from "../../Hardware/controllers/hardwareController";
+import SKULib from "../../lib/SKULib";
 
 class LeaseSKUController {
   createLeaseSKU = async () => {
@@ -27,12 +32,13 @@ class LeaseSKUController {
       cartridgeCombinationResult.success &&
       cartridgeCombinationResult.data.length > 0
     ) {
+      console.log("Creating Lease Combination");
       const leaseSKUCombination = await this.generateLeaseSKUCombination(
         leaseSKUResult.data,
         cartridgeCombinationResult.data
       );
       // this.createLeaseSKUCSVFile(leaseSKUCombination);
-      this.createXLSXFile(leaseSKUCombination);
+      this.createXLSXFile();
     }
   };
 
@@ -47,7 +53,7 @@ class LeaseSKUController {
           const leaseSKUCode =
             "CMP-" +
             leaseSKU.ServiceCode +
-            "-G7" +
+            "-" +
             leaseSKU.HardwareCode +
             "-" +
             cartrigeObj.CartridgeCombinationCode +
@@ -65,11 +71,11 @@ class LeaseSKUController {
             leaseSKU.CountryName;
 
           const item1 =
-            "CMP-G7" + leaseSKU.HardwareCode + "-" + leaseSKU.CountryCode;
+            "CMP-" + leaseSKU.HardwareCode + "-" + leaseSKU.CountryCode;
 
           const item2 = "CMP-CART-" + cartrigeObj.CartridgeCombinationCode;
           const item3 =
-            "SER-CMP-G7" +
+            "SER-CMP-" +
             leaseSKU.HardwareCode +
             "-" +
             leaseSKU.ServiceCode +
@@ -164,22 +170,34 @@ class LeaseSKUController {
     }
   };
 
-  createXLSXFile = async leaseSKUCombination => {
+  createXLSXFile = async () => {
     const records = [];
 
     try {
+      // CMP IG data
+      console.log("Creating Excel file");
+      console.log("Creating CMP IG...........");
       const leaseSKUResult = await leaseSKUModel.getLeaseSKU();
       if (leaseSKUResult.success && leaseSKUResult.data.length > 0) {
-        leaseSKUResult.data.forEach(obj => {
+        for (const obj of leaseSKUResult.data) {
+          // Calculate SKU Price
+
+          const SKUPrice = await this.calculateSKUPrice(obj);
+
           records.push({
             LeaseSKUCode: obj.LeaseSKUCode,
             LeaseSKUName: obj.LeaseSKUName,
             ["Item 1"]: obj.Item1,
             ["Item 2"]: obj.Item2,
             ["Item 3"]: obj.Item3,
-            ["Item 4"]: obj.Item4
+            ["Item 4"]: obj.Item4,
+            USD: "$" + SKULib.numberWithCommas(SKUPrice.USD),
+            CAD: "$" + SKULib.numberWithCommas(SKUPrice.CAD),
+            GBP: "$" + SKULib.numberWithCommas(SKUPrice.GBP),
+            EUR: "$" + SKULib.numberWithCommas(SKUPrice.EUR),
+            AUD: "$" + SKULib.numberWithCommas(SKUPrice.AUD)
           });
-        });
+        }
       }
 
       const Workbook = excel.utils.book_new();
@@ -187,57 +205,132 @@ class LeaseSKUController {
         dateNF: "mm/dd/yy hh:mm:ss"
       });
       excel.utils.book_append_sheet(Workbook, leaseSKUSheet, "CMP IG");
+      console.log("CMP IG file created");
+      // End CMP IG data
 
       // Cartridge Data
+      console.log("Creating CART IG file.........");
       const cartridgeRecords = [];
       const cartridgeSKUResult = await cartridgeModel.getCartridgeCombination();
+
       if (cartridgeSKUResult.success && cartridgeSKUResult.data.length > 0) {
-        cartridgeSKUResult.data.forEach(obj => {
+        for (const obj of cartridgeSKUResult.data) {
+          // Calculate the price
+          const cartridgePrice = await cartridgeController.calculateCartridgePrice(
+            obj
+          );
           cartridgeRecords.push({
-            SKU: obj.CartridgeCombinationCode,
-            Description: obj.CartridgeCombinationName
+            SKU: "SER-CART-" + obj.CartridgeCombinationCode + "-1Y",
+            Description: obj.CartridgeCombinationName,
+            USD: "$" + SKULib.numberWithCommas(cartridgePrice.USD),
+            CAD: "$" + SKULib.numberWithCommas(cartridgePrice.CAD),
+            GBP: "$" + SKULib.numberWithCommas(cartridgePrice.GBP),
+            EUR: "$" + SKULib.numberWithCommas(cartridgePrice.EUR),
+            AUD: "$" + SKULib.numberWithCommas(cartridgePrice.AUD)
           });
-        });
+        }
       }
       const cartridgeSheet = excel.utils.json_to_sheet(cartridgeRecords, {
         dateNF: "mm/dd/yy hh:mm:ss"
       });
       excel.utils.book_append_sheet(Workbook, cartridgeSheet, "Cartridge IG");
-
+      console.log("CART IG file created");
       // End cartridge Data
 
       // Service Data
+      console.log("Creating SERVICE IG file.......");
       const serviceRecords = [];
       const serviceSKUResult = await serviceSKUModel.getServiceSKU();
       if (serviceSKUResult.success && serviceSKUResult.data.length > 0) {
-        serviceSKUResult.data.forEach(obj => {
+        for (const obj of serviceSKUResult.data) {
+          // Service IG Price
+          const serviceSKUPrice = await serviceSKUController.getServiceSKUPrice(
+            obj
+          );
+
+          const serviceSKUCodeArr = obj.ServiceSKUCode.split("-");
+          let gas = "";
+          if (serviceSKUCodeArr.length > 4) {
+            gas = "-" + serviceSKUCodeArr[3];
+          }
           serviceRecords.push({
             SKU: obj.ServiceSKUCode,
-            Description: obj.ServiceSKUName
+            Description: obj.ServiceSKUName,
+            ["Item 1"]:
+              serviceSKUCodeArr[0] +
+              "-" +
+              serviceSKUCodeArr[1] +
+              "-" +
+              serviceSKUCodeArr[serviceSKUCodeArr.length - 1],
+            ["Item 2"]:
+              serviceSKUCodeArr[0] +
+              "-CART-" +
+              serviceSKUCodeArr[2] +
+              gas +
+              "-" +
+              serviceSKUCodeArr[serviceSKUCodeArr.length - 1],
+            USD: "$" + SKULib.numberWithCommas(serviceSKUPrice.USD),
+            CAD: "$" + SKULib.numberWithCommas(serviceSKUPrice.CAD),
+            GBP: "$" + SKULib.numberWithCommas(serviceSKUPrice.GBP),
+            EUR: "$" + SKULib.numberWithCommas(serviceSKUPrice.EUR),
+            AUD: "$" + SKULib.numberWithCommas(serviceSKUPrice.AUD)
           });
-        });
+        }
       }
       const serviceSheet = excel.utils.json_to_sheet(serviceRecords, {
         dateNF: "mm/dd/yy hh:mm:ss"
       });
       excel.utils.book_append_sheet(Workbook, serviceSheet, "Service IG");
+      console.log("SERVICE IG file created");
       // End service Data
 
       // Hardware Data
+      console.log("Createing HARDWARE IG file.........");
       const hardwareRecords = [];
       const hardwareSKUResult = await hardwareModel.getHardwareSKU();
       if (hardwareSKUResult.success && hardwareSKUResult.data.length > 0) {
-        hardwareSKUResult.data.forEach(obj => {
+        const hardwarePrice = hardwareController.calculateHardwarePrice();
+        for (const obj of hardwareSKUResult.data) {
+          const hardwareSKUArr = obj.HardwareSKUCode.split("-");
+          const hardwarePrice = await hardwareController.calculateHardwarePrice(
+            hardwareSKUArr[0],
+            hardwareSKUArr[hardwareSKUArr.length - 1]
+          );
+
+          let hardwareItemObj = {};
+          if (hardwareSKUArr.length === 3) {
+            hardwareItemObj.item1 =
+              hardwareSKUArr[0] +
+              "-" +
+              hardwareSKUArr[hardwareSKUArr.length - 1];
+            hardwareItemObj.item2 = "CART-" + hardwareSKUArr[1];
+          } else {
+            hardwareItemObj.item1 =
+              hardwareSKUArr[0] +
+              "-" +
+              hardwareSKUArr[hardwareSKUArr.length - 1];
+            hardwareItemObj.item2 =
+              "CART-" + hardwareSKUArr[1] + "-" + hardwareSKUArr[2];
+          }
+
           hardwareRecords.push({
             SKU: obj.HardwareSKUCode,
-            Description: obj.HardwareSKUName
+            Description: obj.HardwareSKUName,
+            ["Item 1"]: hardwareItemObj.item1,
+            ["Item 2"]: hardwareItemObj.item2,
+            USD: "$" + SKULib.numberWithCommas(hardwarePrice.USD),
+            CAD: "$" + SKULib.numberWithCommas(hardwarePrice.CAD),
+            GBP: "$" + SKULib.numberWithCommas(hardwarePrice.GBP),
+            EUR: "$" + SKULib.numberWithCommas(hardwarePrice.EUR),
+            AUD: "$" + SKULib.numberWithCommas(hardwarePrice.AUD)
           });
-        });
+        }
       }
       const hardwareSheet = excel.utils.json_to_sheet(hardwareRecords, {
         dateNF: "mm/dd/yy hh:mm:ss"
       });
       excel.utils.book_append_sheet(Workbook, hardwareSheet, "Hardware IG");
+      console.log("HARDWARE IG file created");
       // End Hardware Data
 
       excel.writeFile(Workbook, "/home/anandsingh/Desktop/SKULoad.xlsx");
@@ -245,6 +338,84 @@ class LeaseSKUController {
     } catch (error) {
       console.log("Error for createXLSXFile in leaseSKUController ", error);
     }
+  };
+
+  calculateSKUPrice = SKUObj => {
+    return new Promise(async (resolve, reject) => {
+      const CMPPrice = {
+        USD: 0,
+        CAD: 0,
+        GBP: 0,
+        EUR: 0,
+        AUD: 0
+      };
+      const SKUArr = SKUObj.LeaseSKUCode.split("-");
+
+      if (SKUArr.length > 4) {
+        // Service SKU Price
+        const ServiceSKUPrice = await serviceSKUController.calculateServiceSKUPrice(
+          SKUArr[1]
+        );
+
+        // Get the Hardware Price
+        const HardwarePrice = await hardwareController.calculateHardwarePrice(
+          SKUArr[2],
+          SKUArr[SKUArr.length - 1]
+        );
+        let cartridgePrice;
+        if (SKUArr.length === 5) {
+          // Standard Cartridge
+          cartridgePrice = {
+            USD: 0,
+            CAD: 0,
+            GBP: 0,
+            EUR: 0,
+            AUD: 0
+          };
+        } else if (SKUArr.length === 6) {
+          // Single
+
+          // Calculate MultiCartridge price
+          cartridgePrice = await cartridgeController.calculateCartridgePrice({
+            CartridgeCombinationCode: SKUArr[3] + "-" + SKUArr[4]
+          });
+        }
+        CMPPrice.USD = this.getCPMPrice(
+          HardwarePrice.USD,
+          ServiceSKUPrice.USD,
+          cartridgePrice.USD
+        );
+
+        CMPPrice.CAD = this.getCPMPrice(
+          HardwarePrice.CAD,
+          ServiceSKUPrice.CAD,
+          cartridgePrice.CAD
+        );
+
+        CMPPrice.GBP = this.getCPMPrice(
+          HardwarePrice.GBP,
+          ServiceSKUPrice.GBP,
+          cartridgePrice.GBP
+        );
+
+        CMPPrice.EUR = this.getCPMPrice(
+          HardwarePrice.EUR,
+          ServiceSKUPrice.EUR,
+          cartridgePrice.EUR
+        );
+
+        CMPPrice.AUD = this.getCPMPrice(
+          HardwarePrice.AUD,
+          ServiceSKUPrice.AUD,
+          cartridgePrice.AUD
+        );
+      }
+      return resolve(CMPPrice);
+    });
+  };
+
+  getCPMPrice = (hardware, service, cartridge) => {
+    return Math.round(((hardware + 3 * service) * 1.1 + 3 * cartridge) / 36);
   };
 }
 

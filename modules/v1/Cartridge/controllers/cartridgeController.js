@@ -457,7 +457,6 @@ class CartridgeController {
         cartridgeCombinationResult.data.length > 0
       ) {
         cartridgeCombinationResult.data.forEach(obj => {
-          console.log("-------- Obj ", obj);
           records.push({
             cartridgeCode: obj.CartridgeCombinationCode,
             cartridgeName: obj.CartridgeCombinationName
@@ -473,6 +472,118 @@ class CartridgeController {
       .then(() => {
         console.log("...Done");
       });
+  };
+
+  calculateCartridgePrice = cartridgeObj => {
+    return new Promise(async (resolve, reject) => {
+      const cartridgeArr = cartridgeObj.CartridgeCombinationCode.split("-");
+
+      const regionCurrency = {
+        USD: 0,
+        CAD: 0,
+        GBP: 0,
+        EUR: 0,
+        AUD: 0
+      };
+
+      if (cartridgeArr.length > 1) {
+        const gasArr = cartridgeArr[1].split("");
+        // console.log(gasArr);
+
+        const filteredGas = gasArr.filter(obj => obj !== "X");
+        for (const gasObj of filteredGas) {
+          try {
+            const priceResult = await cartridgeModel.getGasPrice(gasObj);
+
+            if (priceResult.success && priceResult.data.length > 0) {
+              // Store the price of respective currency
+              this.getPriceForRegion(priceResult.data, regionCurrency);
+            }
+          } catch (error) {
+            console.log("Error for getPrice in cartridgeController ", error);
+          }
+        }
+
+        if (cartridgeArr[0] === "P") {
+          try {
+            const cartridgePriceResult = await cartridgeModel.getCartridgeCurrency(
+              {
+                quantity: 4,
+                CartridgeCode: "P"
+              }
+            );
+            if (
+              cartridgePriceResult.success &&
+              cartridgePriceResult.data.length > 0
+            ) {
+              // Store the price of respective currency
+              this.getPriceForRegion(cartridgePriceResult.data, regionCurrency);
+            }
+          } catch (error) {
+            console.log(
+              "Error for getCartridgeCurrency in cartridgeController ",
+              error
+            );
+          }
+          await this.calculatePrice(filteredGas, regionCurrency);
+        } else {
+          await this.calculatePrice(filteredGas, regionCurrency);
+        }
+      }
+      return resolve(regionCurrency);
+    });
+  };
+
+  calculatePrice = (filteredGas, regionCurrency) => {
+    return new Promise(async (resolve, reject) => {
+      let cartridgeCode;
+      if (filteredGas.length === 0) {
+        cartridgeCode = "Z";
+      } else if (filteredGas.length === 1) {
+        cartridgeCode = "S";
+      } else if (filteredGas.length === 2) {
+        cartridgeCode = "M2";
+      } else if (filteredGas.length === 3) {
+        cartridgeCode = "M3";
+      } else if (filteredGas.length === 4) {
+        cartridgeCode = "M";
+      }
+      try {
+        const cartridgePriceResult = await cartridgeModel.getCartridgeCurrency({
+          quantity: filteredGas.length,
+          CartridgeCode: cartridgeCode
+        });
+        if (
+          cartridgePriceResult.success &&
+          cartridgePriceResult.data.length > 0
+        ) {
+          // Store the price of respective currency
+          this.getPriceForRegion(cartridgePriceResult.data, regionCurrency);
+        }
+        return resolve(true);
+      } catch (error) {
+        console.log(
+          "Error for getCartridgeCurrency in cartridgeController ",
+          error
+        );
+      }
+    });
+  };
+
+  getPriceForRegion = (priceResult, regionCurrency) => {
+    priceResult.forEach(obj => {
+      if (obj.CurrencyName === "USD") {
+        regionCurrency.USD += obj.Price;
+      } else if (obj.CurrencyName === "CAD") {
+        regionCurrency.CAD += obj.Price;
+      } else if (obj.CurrencyName === "GBP") {
+        regionCurrency.GBP += obj.Price;
+      } else if (obj.CurrencyName === "EUR") {
+        regionCurrency.EUR += obj.Price;
+      } else if (obj.CurrencyName === "AUD") {
+        regionCurrency.AUD += obj.Price;
+      }
+    });
   };
 }
 

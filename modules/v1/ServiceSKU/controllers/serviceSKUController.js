@@ -3,6 +3,8 @@ import createCSV from "csv-writer";
 
 import serviceSKUModel from "../models/serviceSKUModel";
 import cartridgeModel from "../../Cartridge/models/cartridgeModel";
+import cartridgeController from "../../Cartridge/controllers/cartridgeController";
+import yearsModel from "../../Years/models/yearsModel";
 
 class ServiceSKUController {
   createServiceCSVFile = async () => {
@@ -154,6 +156,120 @@ class ServiceSKUController {
       );
     }
     //}
+  };
+
+  getServiceSKUPrice = serviceSKUObj => {
+    return new Promise(async (resolve, reject) => {
+      const serviceSKUArr = serviceSKUObj.ServiceSKUCode.split("-");
+
+      const servicePrice = await this.calculateServiceSKUPrice(
+        serviceSKUArr[1]
+      );
+
+      let cartridgePrice;
+      if (serviceSKUArr.length === 4) {
+        // Standard Cartridge
+        cartridgePrice = {
+          USD: 0,
+          CAD: 0,
+          GBP: 0,
+          EUR: 0,
+          AUD: 0
+        };
+      } else {
+        cartridgePrice = await cartridgeController.calculateCartridgePrice({
+          CartridgeCombinationCode: serviceSKUArr[2] + "-" + serviceSKUArr[3]
+        });
+      }
+      const yearStr = serviceSKUArr[serviceSKUArr.length - 1];
+      const yearArr = yearStr.split("");
+
+      if (yearArr[1].toLowerCase() === "y") {
+        const discountPercentage = await yearsModel.getYearDiscount(yearStr);
+        const discount =
+          parseInt(discountPercentage.data[0].Discount, 10) / 100;
+
+        servicePrice.USD = Math.round(
+          parseInt(yearArr[0], 10) *
+            (servicePrice.USD -
+              servicePrice.USD * discount +
+              (cartridgePrice.USD - cartridgePrice.USD * discount))
+        );
+
+        servicePrice.CAD = Math.round(
+          parseInt(yearArr[0], 10) *
+            (servicePrice.CAD -
+              servicePrice.CAD * discount +
+              (cartridgePrice.CAD - cartridgePrice.CAD * discount))
+        );
+        servicePrice.GBP = Math.round(
+          parseInt(yearArr[0], 10) *
+            (servicePrice.GBP -
+              servicePrice.GBP * discount +
+              (cartridgePrice.GBP - cartridgePrice.GBP * discount))
+        );
+        servicePrice.EUR = Math.round(
+          parseInt(yearArr[0], 10) *
+            (servicePrice.EUR -
+              servicePrice.EUR * discount +
+              (cartridgePrice.EUR - cartridgePrice.EUR * discount))
+        );
+        servicePrice.AUD = Math.round(
+          parseInt(yearArr[0], 10) *
+            (servicePrice.AUD -
+              servicePrice.AUD * discount +
+              (cartridgePrice.AUD - cartridgePrice.AUD * discount))
+        );
+      }
+      return resolve(servicePrice);
+    });
+  };
+
+  calculateServiceSKUPrice = serviceSKUCode => {
+    return new Promise(async (resolve, reject) => {
+      const ServiceSKUPrice = {
+        USD: 0,
+        CAD: 0,
+        GBP: 0,
+        EUR: 0,
+        AUD: 0
+      };
+
+      const ServiceSKUPriceResult = await serviceSKUModel.getServiceSKUPrice(
+        serviceSKUCode
+      );
+
+      if (
+        ServiceSKUPriceResult.success &&
+        ServiceSKUPriceResult.data.length > 0
+      ) {
+        cartridgeController.getPriceForRegion(
+          ServiceSKUPriceResult.data,
+          ServiceSKUPrice
+        );
+      }
+
+      if (ServiceSKUPriceResult.data[0].GroupName.toLowerCase() === "ptt") {
+        const pptPriceResult = await this.getPTTPrice(serviceSKUCode);
+        ServiceSKUPrice.USD += pptPriceResult.USD;
+        ServiceSKUPrice.CAD += pptPriceResult.CAD;
+        ServiceSKUPrice.GBP += pptPriceResult.GBP;
+        ServiceSKUPrice.EUR += pptPriceResult.EUR;
+        ServiceSKUPrice.AUD += pptPriceResult.AUD;
+      }
+
+      return resolve(ServiceSKUPrice);
+    });
+  };
+
+  getPTTPrice = serviceSKUCode => {
+    return new Promise(async (resolve, reject) => {
+      const pptBaseSerivceCodeArr = serviceSKUCode.split("");
+      const pptPrice = await this.calculateServiceSKUPrice(
+        pptBaseSerivceCodeArr[0] + pptBaseSerivceCodeArr[1]
+      );
+      return resolve(pptPrice);
+    });
   };
 }
 export default new ServiceSKUController();
