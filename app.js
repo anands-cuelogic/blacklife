@@ -6,7 +6,7 @@ import leaseSKUController from "./modules/v1/LeaseSKU/controllers/leaseSKUContro
 import createXLSX from "./modules/v1/lib/createXLSX";
 
 // To create cartridge combination
-// cartridgeController.cartrigeData();
+cartridgeController.cartrigeData();
 
 // To create Hardware SKU
 // hardwareController.createHardwareSKU();

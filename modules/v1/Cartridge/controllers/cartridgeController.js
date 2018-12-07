@@ -200,13 +200,13 @@ class CartridgeController {
 
   storeCartridgeCombination = cartridgeCombination => {
     // For Standard Gas
-    this.createStandardGas(cartridgeCombination[0]);
+    //this.createStandardGas(cartridgeCombination[0]);
 
     // For Single Gas Combination
     this.createSingleGas(cartridgeCombination[1][0]);
 
     // For Multi Gas Combination
-    this.createMultiGas(cartridgeCombination[2][0]);
+    //this.createMultiGas(cartridgeCombination[2][0]);
   };
 
   standardGasCombination = standardGas => {
@@ -265,26 +265,11 @@ class CartridgeController {
           obj.firstRecord.CartridgeName + " , " + obj.secondRecord.GasName;
         const groupName = obj.firstRecord.GroupName;
 
-        let isExist = false;
-        try {
-          const cartObj = await cartridgeModel.getCartridgeCombinationByCode(
-            cartridgeCombinationCode
-          );
-
-          if (cartObj.success && cartObj.data.length > 0) {
-            isExist = true;
-          }
-
-          if (!isExist) {
-            singleGasCartCombination.push([
-              cartridgeCombinationCode,
-              cartridgeCombinationName,
-              groupName
-            ]);
-          }
-        } catch (error) {
-          console.log("Error for getCartridgeCombinationByCode in app", error);
-        }
+        singleGasCartCombination.push({
+          CartridgeCombinationCode: cartridgeCombinationCode,
+          CartridgeCombinationName: cartridgeCombinationName,
+          groupName
+        });
       }
       return resolve(singleGasCartCombination);
     });
@@ -295,8 +280,33 @@ class CartridgeController {
       const singleGasCartCombination = await this.singleGasCombination(
         singleGas
       );
-      if (singleGasCartCombination.length > 0) {
-        this.storeCartCombination(singleGasCartCombination);
+
+      let uniqueSingleGasCombination;
+      try {
+        const singleCartridgeCombination = await cartridgeModel.getCartridgeCombinationByGroupName(
+          "SINGLE"
+        );
+
+        if (singleCartridgeCombination.success) {
+          const dbResult = singleCartridgeCombination.data;
+          const combinationArray = singleGasCartCombination;
+
+          uniqueSingleGasCombination = _.differenceBy(
+            combinationArray,
+            dbResult,
+            "CartridgeCombinationCode"
+          );
+          console.log("Unique ", uniqueSingleGasCombination);
+        }
+      } catch (error) {
+        console.log(
+          "Error for getCartridgeCombinationByGroupName in cartridgeController ",
+          error
+        );
+      }
+
+      if (uniqueSingleGasCombination.length > 0) {
+        this.storeCartCombination(uniqueSingleGasCombination);
       }
     } catch (error) {
       console.log("Error for createSingleGas in app", error);

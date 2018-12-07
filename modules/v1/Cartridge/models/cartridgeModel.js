@@ -118,6 +118,24 @@ class CartridgeModel {
     });
   };
 
+  getCartridgeCombinationByGroupName = parameters => {
+    const query =
+      "SELECT CartridgeCombinationCode as CartridgeCombinationCode, CartridgeCombinationName as CartridgeCombinationName FROM CartridgeCombination WHERE CartridgeGroupName IN (?)";
+
+    return new Promise((resolve, reject) => {
+      const temp = mySqlConnection.query(query, parameters, (err, result) => {
+        if (err) {
+          console.log(
+            "Error for getCartridgeCombinationByGroupName in cartidgeModel ",
+            err
+          );
+          return reject({ success: false, message: err });
+        }
+        return resolve({ success: true, data: result });
+      });
+    });
+  };
+
   getGasPrice = parameters => {
     const query = `SELECT  GasCode, Price, CurrencyName FROM GasCurrencyMatrix gcm
 		JOIN Gas g on g.idGas = gcm.GasId AND g.GasCode IN (?)
