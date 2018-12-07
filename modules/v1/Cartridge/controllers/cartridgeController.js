@@ -268,7 +268,7 @@ class CartridgeController {
         singleGasCartCombination.push({
           CartridgeCombinationCode: cartridgeCombinationCode,
           CartridgeCombinationName: cartridgeCombinationName,
-          groupName
+          CartridgeGroupName: groupName
         });
       }
       return resolve(singleGasCartCombination);

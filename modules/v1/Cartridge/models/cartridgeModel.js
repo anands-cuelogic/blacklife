@@ -50,31 +50,41 @@ class CartridgeModel {
     const query =
       "INSERT INTO CartridgeCombination (CartridgeCombinationCode, CartridgeCombinationName, CartridgeGroupName) VALUES ?";
     return new Promise((resolve, reject) => {
-      const temp = mySqlConnection.query(query, [parameters], (err, result) => {
-        // console.log("-------Temp ", temp.sql);
-        if (err) {
-          if (err.errno === 1062) {
-            console.log("Duplicate entry error for ", parameters);
-            return resolve({
-              success: true,
-              data: result,
-              requestedCombination: parameters
-            });
-          } else {
-            // console.log("Error for createCartridgeCobination in cartridgeModel ", err);
-            return reject({
-              success: false,
-              message: err,
-              requestedCombination: parameters
-            });
+      const temp = mySqlConnection.query(
+        query,
+        [
+          parameters.map(item => [
+            item.CartridgeCombinationCode,
+            item.CartridgeCombinationName,
+            item.CartridgeGroupName
+          ])
+        ],
+        (err, result) => {
+          // console.log("-------Temp ", temp.sql);
+          if (err) {
+            if (err.errno === 1062) {
+              console.log("Duplicate entry error for ", parameters);
+              return resolve({
+                success: true,
+                data: result,
+                requestedCombination: parameters
+              });
+            } else {
+              // console.log("Error for createCartridgeCobination in cartridgeModel ", err);
+              return reject({
+                success: false,
+                message: err,
+                requestedCombination: parameters
+              });
+            }
           }
+          return resolve({
+            success: true,
+            data: result,
+            requestedCombination: parameters
+          });
         }
-        return resolve({
-          success: true,
-          data: result,
-          requestedCombination: parameters
-        });
-      });
+      );
     });
   };
 
