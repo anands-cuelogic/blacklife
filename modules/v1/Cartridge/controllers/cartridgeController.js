@@ -4,48 +4,111 @@ import cartridgeModel from "../models/cartridgeModel";
 import _ from "lodash";
 
 class CartridgeController {
-	cartrigeData = async () => {
-		try {
-			const cartridgeModelResult = await cartridgeModel.getCartridge();
+	createCartridge = () => {
+		return new Promise(async (resolve, reject) => {
+			try {
+				const cartridgeModelResult = await cartridgeModel.getCartridge();
 
-			if (cartridgeModelResult && cartridgeModelResult.data && cartridgeModelResult.data.length > 0) {
-				const cartridgeGroupResult = _.chain(cartridgeModelResult.data)
-					.groupBy("GroupName")
-					.map((value, key) => {
-						return {
-							key: key,
-							record: value
-						};
-					})
-					.value();
+				if (cartridgeModelResult && cartridgeModelResult.data && cartridgeModelResult.data.length > 0) {
+					const cartridgeGroupResult = _.chain(cartridgeModelResult.data)
+						.groupBy("GroupName")
+						.map((value, key) => {
+							return {
+								key: key,
+								record: value
+							};
+						})
+						.value();
 
-				const cartridgeCombination = [];
-				for (const cartridgeObj of cartridgeGroupResult) {
-					cartridgeCombination.push(await this.createCartridge(cartridgeObj));
+					const cartridgeCombination = [];
+					for (const cartridgeObj of cartridgeGroupResult) {
+						cartridgeCombination.push(await this.createCartridgeCombination(cartridgeObj));
+					}
+					console.log("Combination created");
+					// Store the cartridge combination in the database
+					await this.storeCartridgeCombination(cartridgeCombination);
+
+					// Create the CSV File
+					// this.createCSVFile();
 				}
-
-				// Store the cartridge combination in the database
-				this.storeCartridgeCombination(cartridgeCombination);
-
-				// Create the CSV File
-				// this.createCSVFile();
+				return resolve(true);
+			} catch (error) {
+				console.log("Error for cartridgeModelResult in app ", error);
 			}
-		} catch (error) {
-			console.log("Error for cartridgeModelResult in app ", error);
-		}
+		});
 	};
 
-	createCartridge = async (cartridgeObj) => {
-		const cartridgeCombination = [];
+	createCartridgeCombination = (cartridgeObj) => {
+		return new Promise(async (resolve, reject) => {
+			try {
+				const cartridgeCombination = [];
 
-		if (cartridgeObj.key === "STANDARD") {
-			return [ { firstRecord: cartridgeObj.record[0] } ];
-		} else if (cartridgeObj.key === "SINGLE") {
-			for (const singleObj of cartridgeObj.record) {
-				cartridgeCombination.push(await this.singleGasGenerator(singleObj));
+				if (cartridgeObj.key === "STANDARD") {
+					return resolve([ { firstRecord: cartridgeObj.record[0] } ]);
+				} else if (cartridgeObj.key === "SINGLE") {
+					for (const singleObj of cartridgeObj.record) {
+						cartridgeCombination.push(await this.singleGasGenerator(singleObj));
+					}
+				} else if (cartridgeObj.key === "MULTI") {
+					const multiGroupSeqResult = _.chain(cartridgeObj.record)
+						.groupBy("SequenceNo")
+						.map((value, key) => {
+							return {
+								key: key,
+								record: value
+							};
+						})
+						.value();
+
+					const multiGasCombination = await this.multiGasGenerator(multiGroupSeqResult[0].record);
+
+					cartridgeCombination.push(multiGasCombination);
+				}
+				return resolve(cartridgeCombination);
+			} catch (error) {
+				console.log("Error for createCartridgeCombination in cartridgeController", error);
 			}
-		} else if (cartridgeObj.key === "MULTI") {
-			const multiGroupSeqResult = _.chain(cartridgeObj.record)
+		});
+	};
+
+	singleGasGenerator = (singleGas) => {
+		return new Promise(async (resolve, reject) => {
+			try {
+				// Fetch the record from the Single Gas table
+
+				const singleGasResult = await cartridgeModel.getSingleGas();
+				const singleGasCombination = [];
+				if (singleGasResult && singleGasResult.data) {
+					singleGasResult.data.forEach((singleGasObj) => {
+						// Combine with the cartridge.CartridgeCode - singleGas.code
+
+						singleGasCombination.push({
+							firstRecord: singleGas,
+							seperator: "-",
+							secondRecord: singleGasObj
+						});
+					});
+				}
+				return resolve(singleGasCombination);
+			} catch (error) {
+				console.log("Error for getSingleGas in singleGasGenerator ", error);
+			}
+		});
+	};
+
+	multiGasGenerator = (firstRecord) => {
+		return new Promise(async (resolve, reject) => {
+			const multiGasCombination = [];
+
+			// Get the multi gas
+			let multiGasResult;
+			try {
+				multiGasResult = await cartridgeModel.getMultiGas();
+			} catch (error) {
+				console.log("Error for getMultiGas in app", error);
+			}
+
+			const multiGasGroupResult = _.chain(multiGasResult.data)
 				.groupBy("SequenceNo")
 				.map((value, key) => {
 					return {
@@ -55,76 +118,26 @@ class CartridgeController {
 				})
 				.value();
 
-			const multiGasCombination = await this.multiGasGenerator(multiGroupSeqResult[0].record);
+			if (multiGasResult) {
+				firstRecord.forEach((firstRecordObj) => {
+					const multiGas = {
+						firstRecord: firstRecordObj,
+						seperator: "-"
+					};
 
-			cartridgeCombination.push(multiGasCombination);
-		}
-		return cartridgeCombination;
-	};
-
-	singleGasGenerator = async (singleGas) => {
-		try {
-			// Fetch the record from the Single Gas table
-
-			const singleGasResult = await cartridgeModel.getSingleGas();
-			const singleGasCombination = [];
-			if (singleGasResult && singleGasResult.data) {
-				singleGasResult.data.forEach((singleGasObj) => {
-					// Combine with the cartridge.CartridgeCode - singleGas.code
-
-					singleGasCombination.push({
-						firstRecord: singleGas,
-						seperator: "-",
-						secondRecord: singleGasObj
-					});
+					// Call the third column of multi gas
+					const multiGasThirdColumnResult = this.multiGasThirdColumn(
+						multiGas,
+						multiGasGroupResult[0].record,
+						multiGasGroupResult[1].record,
+						multiGasGroupResult[2].record,
+						multiGasGroupResult[3].record
+					);
+					multiGasCombination.push(multiGasThirdColumnResult);
 				});
 			}
-			return singleGasCombination;
-		} catch (error) {
-			console.log("Error for getSingleGas in singleGasGenerator ", error);
-		}
-	};
-
-	multiGasGenerator = async (firstRecord) => {
-		const multiGasCombination = [];
-
-		// Get the multi gas
-		let multiGasResult;
-		try {
-			multiGasResult = await cartridgeModel.getMultiGas();
-		} catch (error) {
-			console.log("Error for getMultiGas in app", error);
-		}
-
-		const multiGasGroupResult = _.chain(multiGasResult.data)
-			.groupBy("SequenceNo")
-			.map((value, key) => {
-				return {
-					key: key,
-					record: value
-				};
-			})
-			.value();
-
-		if (multiGasResult) {
-			firstRecord.forEach((firstRecordObj) => {
-				const multiGas = {
-					firstRecord: firstRecordObj,
-					seperator: "-"
-				};
-
-				// Call the third column of multi gas
-				const multiGasThirdColumnResult = this.multiGasThirdColumn(
-					multiGas,
-					multiGasGroupResult[0].record,
-					multiGasGroupResult[1].record,
-					multiGasGroupResult[2].record,
-					multiGasGroupResult[3].record
-				);
-				multiGasCombination.push(multiGasThirdColumnResult);
-			});
-		}
-		return multiGasCombination;
+			return resolve(multiGasCombination);
+		});
 	};
 
 	sort = (obj) => {
@@ -190,14 +203,21 @@ class CartridgeController {
 	};
 
 	storeCartridgeCombination = (cartridgeCombination) => {
-		// For Standard Gas
-		this.createStandardGas(cartridgeCombination[0]);
+		return new Promise((resolve, reject) => {
+			const promiseArr = [];
+			// For Standard Gas
+			promiseArr.push(this.createStandardGas(cartridgeCombination[0]));
 
-		// For Single Gas Combination
-		this.createSingleGas(cartridgeCombination[1][0]);
+			// For Single Gas Combination
+			promiseArr.push(this.createSingleGas(cartridgeCombination[1][0]));
 
-		// For Multi Gas Combination
-		this.createMultiGas(cartridgeCombination[2][0]);
+			// For Multi Gas Combination
+			promiseArr.push(this.createMultiGas(cartridgeCombination[2][0]));
+
+			Promise.all(promiseArr).then(() => {
+				return resolve(true);
+			});
+		});
 	};
 
 	standardGasCombination = (standardGas) => {

@@ -5,17 +5,24 @@ import serviceSKUController from "./modules/v1/ServiceSKU/controllers/serviceSKU
 import leaseSKUController from "./modules/v1/LeaseSKU/controllers/leaseSKUController";
 import createXLSX from "./modules/v1/lib/createXLSX";
 
-// To create cartridge combination
-cartridgeController.cartrigeData();
+async function generateSKUMasterRecord() {
+	// To create cartridge combination
+	await cartridgeController.createCartridge();
 
-// To create Hardware SKU
-// hardwareController.createHardwareSKU();
+	// To create Hardware SKU
+	hardwareController.createHardwareSKU();
 
-// To create serviceSKU
-// serviceSKUController.createServiceSKU();
+	// To create serviceSKU
+	serviceSKUController.createServiceSKU();
 
-// To create LeaseSKU
-// leaseSKUController.createLeaseSKU();
+	// To create LeaseSKU
+	leaseSKUController.createLeaseSKU();
+}
+
+function timeout(ms) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+generateSKUMasterRecord();
 
 // Generate XLSX file
 // createXLSX.createXLSXFile();
