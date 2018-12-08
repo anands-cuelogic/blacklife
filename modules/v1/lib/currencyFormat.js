@@ -1,6 +1,6 @@
-class SKULib {
+class CurrencyFormat {
   numberWithCommas(price) {
     return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
 }
-export default new SKULib();
+export default new CurrencyFormat();
