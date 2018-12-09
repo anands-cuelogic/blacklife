@@ -2,11 +2,7 @@ import mySqlConnection from "../../Services/mySQLConnection";
 
 class LeaseSKUModel {
 	getLeaseSKUMatrix = () => {
-		const query = `select ServiceCode, ServiceName, HardwareCode, HardwareName, CountryCode, CountryName from LeaseSKUMatrix lsm
-        JOIN Service ser ON ser.idService = lsm.ServiceId AND  lsm.isActive = 1
-        JOIN Hardware hard ON hard.idHardware = lsm.HardwareId
-        JOIN CountryHardwareMatrix chm ON chm.CountryId = lsm.CountryId AND chm.HardwareId = lsm.HardwareId AND chm.isActive = 1
-        JOIN Country cont ON cont.idCountry = lsm.CountryId`;
+		const query = "Call getLeaseSKUMatrix()";
 
 		return new Promise((resolve, reject) => {
 			const temp = mySqlConnection.query(query, (err, result) => {
@@ -14,7 +10,7 @@ class LeaseSKUModel {
 					console.log("Error for getLeaseMatrix in leaseSKUModel ", error);
 					return reject({ success: false, message: err });
 				}
-				return resolve({ success: true, data: result });
+				return resolve({ success: true, data: result[0] });
 			});
 		});
 	};
@@ -48,7 +44,7 @@ class LeaseSKUModel {
 	};
 
 	getLeaseSKU = () => {
-		const query = "SELECT LeaseSKUCode, LeaseSKUName, Item1, Item2, Item3, Item4 FROM LeaseSKU";
+		const query = "Call getLeaseSKU()";
 
 		return new Promise((resolve, reject) => {
 			const temp = mySqlConnection.query(query, (err, result) => {
@@ -56,7 +52,7 @@ class LeaseSKUModel {
 					console.log("Error for getLeaseSKU in leaseSKUModel ", error);
 					return reject({ success: false, message: err });
 				}
-				return resolve({ success: true, data: result });
+				return resolve({ success: true, data: result[0] });
 			});
 		});
 	};

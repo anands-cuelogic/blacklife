@@ -2,9 +2,7 @@ import mySqlConnection from "../../Services/mySQLConnection";
 
 class HardwareModel {
 	getCountryHardwareMatrix = () => {
-		const query = `SELECT HardwareCode, HardwareName, CountryCode, CountryName FROM CountryHardwareMatrix chm
-        JOIN Hardware h ON h.idHardware = chm.HardwareId AND chm.isActive = 1
-        JOIN Country c ON c.idCountry = chm.CountryId`;
+		const query = "Call getCountryHardwareMatrix()";
 
 		return new Promise((resolve, reject) => {
 			const temp = mySqlConnection.query(query, (err, result) => {
@@ -12,7 +10,7 @@ class HardwareModel {
 					console.log("Error for getCountryHardwareMatrix in HardwareModel ", err);
 					return reject({ success: false, message: error });
 				}
-				return resolve({ success: true, data: result });
+				return resolve({ success: true, data: result[0] });
 			});
 		});
 	};
@@ -36,7 +34,7 @@ class HardwareModel {
 	};
 
 	getHardwareSKUByCode = (HardwareSKUCode) => {
-		const query = "SELECT HardwareSKUCode FROM HardwareSKU WHERE HardwareSKUCode IN (?)";
+		const query = "Call getHardwareSKUByCode(?)";
 
 		return new Promise((resolve, reject) => {
 			const temp = mySqlConnection.query(query, HardwareSKUCode, (err, result) => {
@@ -44,13 +42,13 @@ class HardwareModel {
 					console.log("Error for getHardwareSKUByCode in hardwareModel ", err);
 					return reject({ success: false, message: err });
 				}
-				return resolve({ success: true, data: result });
+				return resolve({ success: true, data: result[0] });
 			});
 		});
 	};
 
 	getHardwareSKU = () => {
-		const query = "SELECT HardwareSKUCode, HardwareSKUName FROM HardwareSKU";
+		const query = "Call getHardwareSKU()";
 
 		return new Promise((resolve, reject) => {
 			const temp = mySqlConnection.query(query, (err, result) => {
@@ -58,17 +56,13 @@ class HardwareModel {
 					console.log("Error for getHardwareSKU in hardwareModel ", err);
 					return reject({ success: false, message: err });
 				}
-				return resolve({ success: true, data: result });
+				return resolve({ success: true, data: result[0] });
 			});
 		});
 	};
 
 	getHardwarePrice = (parameters) => {
-		const query = `SELECT Price, CurrencyName, HardwareCode ,CountryCode FROM HardwareCurrencyMatrix hcm 
-		JOIN CountryHardwareMatrix chm ON chm.idCountryHardwareMatrix = hcm.CountryHardwareMatrixId
-		JOIN Hardware h ON h.idHardware = chm.HardwareId AND HardwareCode IN (?)
-		JOIN Currency cur ON cur.idCurrency = hcm.CurrencyId
-		JOIN Country c ON c.idCountry = chm.CountryId AND chm.isActive = 1 AND c.CountryCode IN (?)`;
+		const query = "Call getHardwarePrice(?,?)";
 
 		const queryParameters = [ parameters.HardwareCode, parameters.CountryCode ];
 		return new Promise((resolve, reject) => {
@@ -77,7 +71,7 @@ class HardwareModel {
 					console.log("Error for getHardwarePrice in hardwareModel ", err);
 					return reject({ success: false, message: err });
 				}
-				return resolve({ success: true, data: result });
+				return resolve({ success: true, data: result[0] });
 			});
 		});
 	};

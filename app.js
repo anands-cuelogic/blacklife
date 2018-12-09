@@ -19,10 +19,7 @@ async function generateSKUMasterRecord() {
 	leaseSKUController.createLeaseSKU();
 }
 
-function timeout(ms) {
-	return new Promise((resolve) => setTimeout(resolve, ms));
-}
 generateSKUMasterRecord();
 
 // Generate XLSX file
-// createXLSX.createXLSXFile();
+createXLSX.createXLSXFile();

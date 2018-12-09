@@ -20,7 +20,7 @@ class ServiceSKUModel {
 	};
 
 	getService = () => {
-		const query = "SELECT ServiceName, ServiceCode FROM Service";
+		const query = "Call getService()";
 
 		return new Promise((resolve, reject) => {
 			const temp = mySqlConnection.query(query, (err, result) => {
@@ -28,13 +28,13 @@ class ServiceSKUModel {
 					console.log("Error for getService in ServiceSKUModel  ", err);
 					return reject({ success: false, message: err });
 				}
-				return resolve({ success: true, data: result });
+				return resolve({ success: true, data: result[0] });
 			});
 		});
 	};
 
 	getYear = () => {
-		const query = "SELECT YearName, YearCode from Years";
+		const query = "Call getYear()";
 
 		return new Promise((resolve, reject) => {
 			const temp = mySqlConnection.query(query, (err, result) => {
@@ -42,13 +42,13 @@ class ServiceSKUModel {
 					console.log("Error for getYear im serviceSKUModel ", err);
 					return reject({ success: false, message: err });
 				}
-				return resolve({ success: true, data: result });
+				return resolve({ success: true, data: result[0] });
 			});
 		});
 	};
 
 	getServiceSKUByCode = (serviceSKUCode) => {
-		const query = "SELECT ServiceSKUCode FROM ServiceSKU WHERE ServiceSKUCode IN (?)";
+		const query = "Call serviceSKUCode(?)";
 
 		const queryParameter = [ serviceSKUCode ];
 		return new Promise((resolve, reject) => {
@@ -57,13 +57,13 @@ class ServiceSKUModel {
 					console.log("Error for getServiceSKYByCode in ServiceSKUModel ", err);
 					return reject({ success: false, message: err });
 				}
-				return resolve({ success: true, data: result });
+				return resolve({ success: true, data: result[0] });
 			});
 		});
 	};
 
 	getServiceSKU = () => {
-		const query = "SELECT ServiceSKUCode, ServiceSKUName FROM ServiceSKU";
+		const query = "Call getServiceSKU()";
 
 		return new Promise((resolve, reject) => {
 			const temp = mySqlConnection.query(query, (err, result) => {
@@ -71,15 +71,13 @@ class ServiceSKUModel {
 					console.log("Error for getServiceSKUU in serviceSKUModel ", err);
 					return reject({ success: false, message: err });
 				}
-				return resolve({ success: true, data: result });
+				return resolve({ success: true, data: result[0] });
 			});
 		});
 	};
 
 	getServiceSKUPrice = (parameters) => {
-		const query = `SELECT  Price, ServiceCode,CurrencyName,GroupName FROM ServiceCurrencyMatrix scm
-		JOIN Service s ON s.idService = scm.ServiceId AND s.ServiceCode IN (?)
-		JOIN Currency c ON c.idCurrency = scm.CurrencyId`;
+		const query = "Call getServiceSKUPrice(?)";
 
 		return new Promise((resolve, reject) => {
 			const temp = mySqlConnection.query(query, parameters, (err, result) => {
@@ -87,7 +85,7 @@ class ServiceSKUModel {
 					console.log("Error for getServicreSKUPrice in serviceSKUModel ", err);
 					return reject({ success: false, message: err });
 				}
-				return resolve({ success: true, data: result });
+				return resolve({ success: true, data: result[0] });
 			});
 		});
 	};
