@@ -19,7 +19,7 @@ async function generateSKUMasterRecord() {
 	leaseSKUController.createLeaseSKU();
 }
 
-generateSKUMasterRecord();
+// generateSKUMasterRecord();
 
 // Generate XLSX file
 createXLSX.createXLSXFile();
