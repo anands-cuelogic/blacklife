@@ -40,11 +40,8 @@ class CreateXLSX {
 						EUR: "$" + currencyFormat.numberWithCommas(SKUPrice.EUR),
 						AUD: "$" + currencyFormat.numberWithCommas(SKUPrice.AUD)
 					});
-					i += 1;
-					console.log("IIII ", i);
 				}
 			}
-			console.log("AAAA");
 
 			const Workbook = excel.utils.book_new();
 			const leaseSKUSheet = excel.utils.json_to_sheet(records, {
